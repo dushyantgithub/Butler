@@ -21,11 +21,11 @@ export function createOfficeWorld(host, callbacks) {
     'aria-label',
     'Interactive block-built office. Click Scout, Quinn, or the boss’s chamber. Drag to rotate; scroll to zoom.',
   );
-  const camera = new THREE.OrthographicCamera(-18, 18, 13, -13, 0.1, 150);
-  camera.position.set(25, 29, 32);
-  camera.lookAt(0, 0, 0);
+  const camera = new THREE.OrthographicCamera(-18, 18, 13, -13, 0.1, 240);
+  camera.position.set(46, 56, 60);
+  camera.lookAt(0, 0, -12);
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0, 0);
+  controls.target.set(0, 0, -12);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.enablePan = true;
@@ -459,6 +459,10 @@ export function createOfficeWorld(host, callbacks) {
   actors.researcher.object.position.set(-7, 0, -1.7);
   actors.manager.object.position.set(-1, 0, -3);
   actors.boss.object.position.set(7, 0.16, -6.45);
+  for (const id of ['researcher', 'manager']) {
+    actors[id].object.visible = false;
+    actors[id].label.style.display = 'none';
+  }
   const labels = [];
   for (const [text, x, z, action] of [
     ['YOUR CHAMBER', 7, -4, 'boss'],
@@ -473,6 +477,104 @@ export function createOfficeWorld(host, callbacks) {
     host.appendChild(el);
     labels.push({ el, position: new THREE.Vector3(x, 0.12, z + 2) });
   }
+  // Department wings use lightweight, shared geometry. Only deployed employees
+  // occupy desks; the reserve lounge represents benched staff without crowding the floor.
+  const departments = new Map(),
+    staff = new Map();
+  function updateCampus(next) {
+    (next.departments || []).forEach((dept, index) => {
+      let room = departments.get(dept.id);
+      if (!room) {
+        const x = ((index % 4) - 1.5) * 14,
+          z = -18 - Math.floor(index / 4) * 16;
+        const floor = group(x, 0, z);
+        box(floor, 0, -0.3, 0, 13, 0.5, 14, '#a3aa99');
+        box(floor, 0, 0, 0, 12.6, 0.13, 13.6, '#e4ddca');
+        box(floor, 0, 0.48, -6.5, 12.5, 0.85, 0.22, dept.color);
+        box(floor, -6.2, 0.48, 0, 0.22, 0.85, 13, dept.color);
+        box(floor, 6.2, 0.48, 0, 0.22, 0.85, 13, dept.color);
+        // A shared discussion table and whiteboard make each wing usable even
+        // before the CEO deploys its specialist team.
+        box(floor, 0, 0.72, 3.5, 5.2, 0.18, 1.5, '#b59a75');
+        box(floor, -1.8, 0.34, 3.5, 0.18, 0.7, 0.7, '#777b70');
+        box(floor, 1.8, 0.34, 3.5, 0.18, 0.7, 0.7, '#777b70');
+        for (const cx of [-1.6, 0, 1.6])
+          for (const cz of [2.2, 4.8]) {
+            box(floor, cx, 0.42, cz, 0.7, 0.18, 0.65, dept.color);
+            box(floor, cx, 0.8, cz + (cz > 3 ? 0.3 : -0.3), 0.7, 0.75, 0.12, dept.color);
+          }
+        box(floor, 0, 1.4, -6.2, 4.4, 1.5, 0.13, '#f6f1df');
+        for (let line = 0; line < 3; line++)
+          box(floor, -0.5, 1.8 - line * 0.34, -6.11, 2.5 - line * 0.4, 0.07, 0.02, dept.color);
+        const el = document.createElement('button');
+        el.className = 'room-world-label department-world-label';
+        const name = document.createElement('strong'),
+          count = document.createElement('small');
+        name.textContent = dept.name;
+        el.append(name, count);
+        el.onclick = () => callbacks.onSelect(`department:${dept.id}`);
+        host.appendChild(el);
+        labels.push({ el, position: new THREE.Vector3(x, 0.4, z + 6.2) });
+        room = { x, z, floor, el, count };
+        departments.set(dept.id, room);
+      }
+      const employees = (next.workers || []).filter((w) => w.department === dept.id);
+      const deployed = employees.filter((w) => w.deployment === 'deployed');
+      room.count.textContent = `${deployed.length} in office · ${employees.filter((w) => w.deployment === 'bench').length} on bench`;
+      deployed
+        .filter((w) => !['researcher', 'manager'].includes(w.id))
+        .forEach((worker, slot) => {
+          let person = staff.get(worker.id);
+          if (!person) {
+            const object = group();
+            const deskTop = box(object, 0, 0.7, -0.65, 1.35, 0.12, 0.65, '#ba9872');
+            box(object, 0, 0.96, -0.72, 0.65, 0.46, 0.09, '#405066');
+            box(object, 0, 0.82, 0.18, 0.48, 0.62, 0.34, dept.color);
+            cylinder(object, 0, 1.38, 0.18, 0.23, 0.4, '#f1c956');
+            box(object, 0, 1.62, 0.18, 0.46, 0.12, 0.4, '#6c5340');
+            box(object, -0.15, 0.32, 0.18, 0.19, 0.4, 0.24, '#42516a');
+            box(object, 0.15, 0.32, 0.18, 0.19, 0.4, 0.24, '#42516a');
+            selectable(object, `worker:${worker.id}`);
+            person = { object, deskTop };
+            staff.set(worker.id, person);
+          }
+          person.object.position.set(
+            room.x + ((slot % 6) - 2.5) * 1.95,
+            0,
+            room.z - 4.7 + Math.floor(slot / 6) * 1.9,
+          );
+          person.object.visible = true;
+          person.deskTop.material = mat(
+            worker.activity.status === 'working' ? '#94b995' : '#ba9872',
+          );
+        });
+    });
+    const deployedIds = new Set(
+      (next.workers || []).filter((w) => w.deployment === 'deployed').map((w) => w.id),
+    );
+    for (const [id, person] of staff) person.object.visible = deployedIds.has(id);
+    for (const id of ['researcher', 'manager']) {
+      const worker = next.workers?.find((w) => w.id === id);
+      actors[id].object.visible = !worker || worker.deployment === 'deployed';
+      actors[id].label.style.display = actors[id].object.visible ? '' : 'none';
+    }
+    reserveCount.textContent = `${(next.workers || []).filter((w) => w.deployment === 'bench').length} employees ready to redeploy`;
+  }
+  const reserve = group(20, 0, 4);
+  box(reserve, 0, -0.3, 0, 13, 0.5, 9, '#a3aa99');
+  box(reserve, 0, 0, 0, 12.6, 0.13, 8.6, '#ddcfb4');
+  for (const z of [-2, 1]) {
+    box(reserve, 0, 0.45, z, 8, 0.35, 0.9, '#b18f6a');
+    box(reserve, 0, 0.95, z - 0.4, 8, 0.8, 0.15, '#a08263');
+  }
+  const reserveLabel = document.createElement('button'),
+    reserveCount = document.createElement('small');
+  reserveLabel.className = 'room-world-label department-world-label';
+  reserveLabel.textContent = 'THE BENCH · RESERVE TEAM';
+  reserveLabel.append(reserveCount);
+  reserveLabel.onclick = () => callbacks.onSelect('workers');
+  host.appendChild(reserveLabel);
+  labels.push({ el: reserveLabel, position: new THREE.Vector3(20, 0.2, 8) });
   let state = null,
     lastScene = 0,
     initialized = false,
@@ -554,6 +656,7 @@ export function createOfficeWorld(host, callbacks) {
   }
   function update(next) {
     state = next;
+    updateCampus(next);
     if (!initialized) {
       lastScene = next.scenes?.at(-1)?.id || 0;
       initialized = true;
@@ -808,7 +911,10 @@ export function createOfficeWorld(host, callbacks) {
       ),
       camera,
     );
-    const hit = raycaster.intersectObjects(interactives, true)[0];
+    const hit = raycaster.intersectObjects(
+      interactives.filter((object) => object.visible),
+      true,
+    )[0];
     if (hit) {
       let o = hit.object;
       while (o && !o.userData.select) o = o.parent;
@@ -822,7 +928,7 @@ export function createOfficeWorld(host, callbacks) {
       h = host.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h);
-    const view = Math.max(24, (33 * h) / w);
+    const view = Math.max(47, (82 * h) / w);
     camera.left = (-view * w) / h / 2;
     camera.right = (view * w) / h / 2;
     camera.top = view / 2;
@@ -882,8 +988,8 @@ export function createOfficeWorld(host, callbacks) {
   return {
     update,
     resetCamera() {
-      camera.position.set(25, 29, 32);
-      controls.target.set(0, 0, 0);
+      camera.position.set(46, 56, 60);
+      controls.target.set(0, 0, -12);
       camera.zoom = 1;
       camera.updateProjectionMatrix();
       controls.update();

@@ -16,6 +16,11 @@ function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), 'butler-test-')),
     store = createStore(dir),
     vault = createVault(dir);
+  for (const id of ['researcher', 'manager'])
+    store.saveWorker(
+      { id, defaultDeployment: 'undeployed', skillIds: [] },
+      { deployment: 'deployed' },
+    );
   t.after(() => {
     store.close();
     rmSync(dir, { recursive: true, force: true });
@@ -459,13 +464,13 @@ test('restart reconciles in-flight tasks and marks publishing outcome uncertain'
   assert.equal(store.draft(d.id).status, 'attention');
   assert.equal(store.deliveries(d.id)[0].status, 'uncertain');
 });
-test('automatic mode cannot publish edited model-generated claims or stale articles', async (t) => {
+test('approval cannot be bypassed by legacy automatic mode and stale articles remain blocked', async (t) => {
   const { store, vault } = fixture(t);
   store.saveSettings({ autoPublish: true });
   const office = new Office(store, quietModel, vault);
   const d = draft(store);
   store.updateDraft(d.id, { posts: { ...d.posts, x: 'An unsupported claim' } });
-  await assert.rejects(office.deliver(d.id, true), /unchanged/);
+  await assert.rejects(office.deliver(d.id, true), /CEO approval/);
   const stale = draft(store, {
     url: article.url + '/stale',
     publishedAt: new Date(Date.now() - 90 * 3600000).toISOString(),
@@ -473,7 +478,7 @@ test('automatic mode cannot publish edited model-generated claims or stale artic
   });
   await assert.rejects(office.deliver(stale.id), /freshness/);
 });
-test('automatic mode publishes new unchanged source-backed drafts without a boss approval', async (t) => {
+test('legacy automatic setting cannot publish even editorially ready drafts', async (t) => {
   const { store, vault } = fixture(t);
   store.saveSettings({
     autoPublish: true,
@@ -504,8 +509,9 @@ test('automatic mode publishes new unchanged source-backed drafts without a boss
     },
   );
   await office.runScan();
-  assert.equal(calls, 1);
-  assert.equal(store.drafts()[0].status, 'published');
+  assert.equal(calls, 0);
+  assert.equal(store.drafts()[0].status, 'review');
+  assert.equal(store.settings().autoPublish, false);
 });
 test('publisher uses user OAuth, captures receipt, and treats missing receipt as uncertain', async () => {
   let request;
@@ -636,4 +642,42 @@ test('policy changes quarantine old drafts and publishing rechecks the publisher
     approvedAt: date,
   });
   await assert.rejects(office.deliver(addedLater.id), /Community/);
+});
+
+test('research continues past four blocked articles to find a readable story', async (t) => {
+  const { store, vault } = fixture(t);
+  store.saveSettings({ enabledSources: ['openai'], batchSize: 1, useModel: false });
+  const entries = Array.from({ length: 6 }, (_, i) => ({
+    url: `https://openai.com/index/story-${i}`,
+    date,
+    title: `Research story ${i}`,
+  }));
+  let attempted = 0;
+  const office = new Office(store, quietModel, vault, {
+    fetchText: async (url) => {
+      if (url === source.url) return { url, text: rss(entries) };
+      attempted++;
+      if (!url.endsWith('story-5')) throw new Error('Publisher returned HTTP 403.');
+      return { url, text: html };
+    },
+  });
+  await office.runScan();
+  assert.equal(attempted, 6);
+  assert.equal(store.drafts().length, 1);
+  assert.match(store.tasks().find((v) => v.agent === 'researcher').detail, /5 blocked/);
+});
+test('blocked stories are reported as attention instead of no eligible articles', async (t) => {
+  const { store, vault } = fixture(t);
+  store.saveSettings({ enabledSources: ['openai'], useModel: false });
+  const office = new Office(store, quietModel, vault, {
+    fetchText: async (url) => {
+      if (url === source.url) return { url, text: rss() };
+      throw new Error('Publisher returned HTTP 403.');
+    },
+  });
+  await office.runScan();
+  assert.equal(store.tasks()[0].status, 'attention');
+  assert.match(store.tasks()[0].detail, /1 blocked/);
+  assert.doesNotMatch(store.tasks()[0].detail, /No new eligible/);
+  assert.equal(office.agents.researcher.current, store.tasks()[0].detail);
 });

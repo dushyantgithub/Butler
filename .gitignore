@@ -17,3 +17,7 @@ playwright-report/
 *.sqlite
 *.sqlite-*
 credentials.enc
+
+# User-provided, locally licensed worker and skill libraries (never redistribute).
+/agents/
+/skills/

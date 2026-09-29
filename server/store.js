@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { SOURCES } from './sources.js';
 
 export const defaults = {
   officeName: 'My little empire',
@@ -12,7 +13,7 @@ export const defaults = {
   lookbackHours: 72,
   batchSize: 3,
   platforms: ['linkedin', 'x'],
-  enabledSources: ['openai', 'google', 'deepmind', 'huggingface', 'nvidia'],
+  enabledSources: SOURCES.map((source) => source.id),
   lastScan: null,
 };
 export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')) {
@@ -22,6 +23,8 @@ export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')
     chmodSync(join(dir, 'butler.sqlite'), 0o600);
   } catch {}
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
+    CREATE TABLE IF NOT EXISTS worker_config (id TEXT PRIMARY KEY, body TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, body TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, agent TEXT, title TEXT, status TEXT, started_at TEXT, finished_at TEXT, duration_ms INTEGER, detail TEXT);
     CREATE TABLE IF NOT EXISTS drafts (id TEXT PRIMARY KEY, source_url TEXT UNIQUE, status TEXT, created_at TEXT, updated_at TEXT, body TEXT NOT NULL);
@@ -35,7 +38,40 @@ export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')
     settings: () => ({
       ...defaults,
       ...JSON.parse(db.prepare('SELECT value FROM settings WHERE id=1').get()?.value || '{}'),
+      autoPublish: false,
     }),
+    workerConfig(worker) {
+      return {
+        deployment: worker.defaultDeployment,
+        skillIds: worker.skillIds,
+        ...JSON.parse(
+          db.prepare('SELECT body FROM worker_config WHERE id=?').get(worker.id)?.body || '{}',
+        ),
+      };
+    },
+    saveWorker(worker, patch) {
+      const value = { ...api.workerConfig(worker), ...patch };
+      db.prepare('INSERT OR REPLACE INTO worker_config VALUES (?,?)').run(
+        worker.id,
+        JSON.stringify(value),
+      );
+      return value;
+    },
+    projects: () =>
+      db
+        .prepare('SELECT body FROM projects ORDER BY rowid')
+        .all()
+        .map((r) => JSON.parse(r.body)),
+    project: (id) =>
+      JSON.parse(db.prepare('SELECT body FROM projects WHERE id=?').get(id)?.body || 'null'),
+    saveProject(body, id = randomUUID()) {
+      const value = { ...body, id, updatedAt: now() };
+      db.prepare('INSERT OR REPLACE INTO projects VALUES (?,?)').run(id, JSON.stringify(value));
+      return value;
+    },
+    deleteProject(id) {
+      db.prepare('DELETE FROM projects WHERE id=?').run(id);
+    },
     saveSettings(patch) {
       const value = { ...api.settings(), ...patch };
       db.prepare('INSERT OR REPLACE INTO settings VALUES (1, ?)').run(JSON.stringify(value));

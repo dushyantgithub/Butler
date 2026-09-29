@@ -10,6 +10,8 @@ import { createEnvCredentials } from './env-credentials.js';
 import { LocalModel, MODELS } from './llm.js';
 import { SOURCES } from './sources.js';
 import { Office } from './workflow.js';
+import { publicCatalog, workerContext } from './workers.js';
+import { projectSchema } from './projects.js';
 import { validatePosts, publishPost, PublishError } from './publisher.js';
 import { createXOAuth } from './oauth-x.js';
 import { createLinkedInOAuth } from './oauth-linkedin.js';
@@ -134,6 +136,8 @@ export function createApp(options = {}) {
   app.get('/api/state', (req, res) =>
     res.json({
       settings: store.settings(),
+      ...publicCatalog(office.catalog, store, office.agents),
+      projects: store.projects(),
       agents: office.agents,
       busy: office.busy,
       stopping: office.stopRequested && office.busy,
@@ -145,9 +149,83 @@ export function createApp(options = {}) {
       connections: vault.status(),
     }),
   );
+  app.patch('/api/workers/:id', (req, res) => {
+    idle();
+    const worker = office.catalog.workers.find((w) => w.id === req.params.id);
+    if (!worker) throw new Error('Worker not found.');
+    const patch = z
+      .object({
+        deployment: z.enum(['deployed', 'bench', 'undeployed']).optional(),
+        skillIds: z
+          .array(z.string())
+          .max(2000)
+          .refine(
+            (ids) =>
+              new Set(ids).size === ids.length &&
+              ids.every((id) => office.catalog.skills.some((s) => s.id === id)),
+            'Choose installed skills without duplicates.',
+          )
+          .optional(),
+      })
+      .strict()
+      .parse(req.body);
+    res.json(store.saveWorker(worker, patch));
+    store.event('boss', `Updated ${worker.name}: ${patch.deployment || 'skills changed'}.`);
+  });
+  app.post('/api/departments/:id/deployment', (req, res) => {
+    idle();
+    if (!office.catalog.departments.some((d) => d.id === req.params.id))
+      throw new Error('Department not found.');
+    const { deployment } = z
+      .object({ deployment: z.enum(['deployed', 'bench', 'undeployed']) })
+      .strict()
+      .parse(req.body);
+    for (const worker of office.catalog.workers.filter((w) => w.department === req.params.id))
+      store.saveWorker(worker, { deployment });
+    store.event('boss', `Set ${req.params.id} department to ${deployment}.`);
+    res.json({ ok: true });
+  });
+  app.post('/api/projects', (req, res) => {
+    idle();
+    res.json(store.saveProject(projectSchema.parse(req.body)));
+  });
+  app.put('/api/projects/:id', (req, res) => {
+    idle();
+    if (!store.project(req.params.id)) throw new Error('Project not found.');
+    res.json(store.saveProject(projectSchema.parse(req.body), req.params.id));
+  });
+  app.delete('/api/projects/:id', (req, res) => {
+    idle();
+    store.deleteProject(req.params.id);
+    res.json({ ok: true });
+  });
+  app.post('/api/assignments', (req, res) => {
+    idle();
+    const assignment = z
+      .object({
+        workerId: z.string(),
+        projectId: z.string().optional(),
+        brief: z.string().trim().min(10).max(2000),
+        kind: z.enum(['report', 'campaign']),
+        skillIds: z.array(z.string()).max(2).optional(),
+      })
+      .strict()
+      .parse(req.body);
+    workerContext(office.catalog, store, assignment.workerId, assignment.skillIds);
+    if (assignment.projectId && !store.project(assignment.projectId))
+      throw new Error('Project not found.');
+    if (assignment.kind === 'campaign' && !assignment.projectId)
+      throw new Error('Select a project for this campaign.');
+    if (!store.settings().useModel)
+      throw new Error('Enable the local model in Office preferences.');
+    void office.runAssignment(assignment);
+    res.status(202).json({ ok: true });
+  });
   app.get('/api/model', async (req, res) => res.json(await model.status(store.settings().model)));
   app.post('/api/scan', (req, res) => {
     idle();
+    office.requireWorker('researcher');
+    office.requireWorker('manager');
     void office.runScan();
     res.status(202).json({ ok: true });
   });
@@ -165,7 +243,7 @@ export function createApp(options = {}) {
       officeName: z.string().trim().min(1).max(60),
       model: z.enum(MODELS),
       useModel: z.boolean(),
-      autoPublish: z.boolean(),
+      autoPublish: z.literal(false),
       scheduleHours: z.union([
         z.literal(0),
         z.literal(1),
@@ -311,6 +389,9 @@ export function createApp(options = {}) {
       .object({ notes: z.string().max(600).optional() })
       .strict()
       .parse(req.body);
+    office.requireWorker('manager');
+    if (d.kind === 'campaign')
+      throw new Error('Create a new campaign from Projects or edit this draft.');
     void office.refine(d.id, notes);
     res.status(202).json({ ok: true });
   });
@@ -328,6 +409,7 @@ export function createApp(options = {}) {
     const d = draftExists(req.params.id);
     if (!d.approvedAt || ['rejected', 'published'].includes(d.status))
       throw new Error('Approve an open draft first.');
+    office.requireWorker('manager');
     void office.publish(d.id);
     res.status(202).json({ ok: true });
   });

@@ -9,7 +9,8 @@
     "test": "node --test test/*.test.js",
     "setup:model": "node scripts/setup-model.js",
     "launch": "node scripts/launch.js",
-    "format": "prettier --write src server scripts test *.js *.json *.md"
+    "format": "prettier --write src server scripts test *.js *.json *.md",
+    "check:sources": "node scripts/check-sources.js"
   },
   "keywords": [],
   "type": "module",
@@ -18,6 +19,7 @@
     "express": "^5.2.1",
     "fast-xml-parser": "^5.11.2",
     "lucide-react": "^1.48.0",
+    "marked": "^18.0.14",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "three": "^0.186.1",

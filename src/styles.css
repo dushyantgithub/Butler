@@ -3119,3 +3119,426 @@ code {
 .badge.running {
   color: #587343;
 }
+
+.source-tools {
+  padding: 20px;
+  margin-bottom: 22px;
+}
+.source-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 14px 0;
+}
+.source-filters input {
+  flex: 1;
+  min-width: 200px;
+}
+.source-filters input,
+.source-filters select,
+.source-filters button {
+  padding: 10px 12px;
+  border: 1px solid #d8dace;
+  border-radius: 8px;
+  background: #fff;
+  color: #334339;
+  font: inherit;
+}
+.source-filters button {
+  cursor: pointer;
+}
+.source-filters button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Employee and project management */
+.workforce-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+.workforce-metrics > * {
+  border: 1px solid #d8d5cb;
+  background: #faf8f1;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: left;
+  color: #334a48;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.workforce-metrics strong {
+  font-size: 30px;
+}
+.workforce-metrics span {
+  font-size: 12px;
+}
+.workforce-metrics [aria-pressed='true'] {
+  background: #dce9df;
+  border-color: #6c9981;
+}
+.department-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.department-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-align: left;
+  padding: 18px;
+  border: 1px solid #dedacf;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #34483f;
+}
+.department-card.selected {
+  outline: 2px solid var(--department-color);
+  background: #f0eee3;
+}
+.department-card small {
+  font-size: 11px;
+  color: #6c746e;
+}
+.department-icon {
+  color: var(--department-color);
+}
+.workforce-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 20px 0 12px;
+}
+.roster-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  min-width: 210px;
+}
+.roster-search input {
+  width: 100%;
+}
+.workforce-toolbar select,
+.employee-card select,
+.assignment-form select {
+  padding: 10px;
+  border: 1px solid #d6d6cc;
+  border-radius: 7px;
+  background: #fffdf7;
+  color: #33443c;
+  max-width: 100%;
+}
+.employee-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.employee-card {
+  border: 1px solid #dedacf;
+  border-radius: 14px;
+  padding: 20px;
+  background: #fffdf8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.employee-card.undeployed {
+  background: #eeede7;
+}
+.employee-card h3 {
+  font-size: 16px;
+  margin: 3px 0;
+}
+.employee-card p {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #647067;
+  margin: 0;
+  flex: 1;
+}
+.employee-card small {
+  color: #7d847b;
+  font-size: 11px;
+}
+.employee-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.employee-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+}
+.deployment-pill {
+  display: inline-block;
+  font-size: 10px;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #e4e2d8;
+  white-space: nowrap;
+}
+.deployment-pill.deployed {
+  background: #e1ede1;
+  color: #365f40;
+}
+.deployment-pill.bench {
+  background: #f0e5ce;
+  color: #846231;
+}
+.employee-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.employee-card-actions select {
+  flex: 1;
+  min-width: 100px;
+  font-size: 11px;
+}
+.employee-card-actions .button {
+  font-size: 11px;
+}
+.employee-working {
+  color: #486d48 !important;
+  font-weight: 600;
+}
+.employee-detail {
+  margin: 24px 0;
+  padding: 24px;
+}
+.employee-detail details {
+  margin: 16px 0;
+}
+.employee-detail summary,
+.assignment-form summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.employee-detail > input,
+.employee-detail details > input {
+  width: 100%;
+  margin-top: 12px;
+}
+.skill-picker {
+  max-height: 310px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 15px 0;
+  gap: 8px;
+}
+.skill-picker label {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e1ded3;
+  border-radius: 7px;
+  align-items: start;
+}
+.skill-picker input {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.skill-picker strong {
+  font-size: 12px;
+}
+.skill-picker small {
+  display: block;
+  font-size: 10px;
+  color: #778078;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.worker-report p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.worker-report {
+  border-top: 1px solid #ddd9cd;
+  padding: 16px 0;
+}
+.project-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.project-editor,
+.project-assignment {
+  padding: 26px;
+  margin: 20px 0;
+}
+.project-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.project-fields label,
+.assignment-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #59665c;
+}
+.project-fields input,
+.project-fields textarea,
+.assignment-form textarea,
+.roster-search input,
+.employee-detail details > input {
+  border: 1px solid #d8d7ca;
+  border-radius: 8px;
+  background: #fffefa;
+  padding: 12px;
+  color: #35463c;
+  min-width: 0;
+  line-height: 1.5;
+}
+.project-fields small {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.project-fields textarea,
+.assignment-form textarea {
+  resize: vertical;
+}
+.project-assignment h2 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.project-assignment > p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #70796f;
+}
+.assignment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 22px;
+}
+.assignment-form > .button {
+  align-self: start;
+}
+.assignment-selects {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.assignment-selects label {
+  flex: 1;
+  min-width: 180px;
+}
+.assignment-skills {
+  max-height: 180px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px 0;
+}
+.assignment-skills label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 11px;
+}
+.approval-promise {
+  display: flex;
+  gap: 14px;
+  background: #e7ece1;
+  padding: 20px;
+  border-radius: 12px;
+  color: #4b6150;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.approval-promise svg {
+  flex-shrink: 0;
+}
+.approval-promise p {
+  margin: 0;
+}
+.creative-brief {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.campaign-evidence {
+  overflow-wrap: anywhere;
+}
+.campaign-evidence p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.task-panel td small {
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow: auto;
+}
+.skill-picker input[type='checkbox'],
+.assignment-skills input[type='checkbox'] {
+  width: auto;
+}
+@media (max-width: 900px) {
+  .employee-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .department-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .employee-grid,
+  .project-fields,
+  .skill-picker {
+    grid-template-columns: 1fr;
+  }
+  .workforce-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .workforce-toolbar {
+    align-items: stretch;
+  }
+  .workforce-toolbar > * {
+    width: 100%;
+  }
+  .assignment-skills {
+    grid-template-columns: 1fr;
+  }
+  .project-editor,
+  .project-assignment {
+    padding: 18px;
+  }
+}
+.campaign-graphic {
+  margin: 18px 0;
+}
+.campaign-graphic svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}

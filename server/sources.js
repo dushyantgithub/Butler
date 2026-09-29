@@ -1,5 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import * as cheerio from 'cheerio';
+import { marked } from 'marked';
+import { ADDITIONAL_SOURCES } from './source-catalog.js';
 
 export const SOURCES = [
   {
@@ -42,6 +44,7 @@ export const SOURCES = [
     hosts: ['blogs.nvidia.com'],
     color: '#779348',
   },
+  ...ADDITIONAL_SOURCES,
 ];
 const parser = new XMLParser({ ignoreAttributes: false, processEntities: false });
 export const normalize = (text) =>
@@ -61,6 +64,16 @@ export function trustedUrl(input, source) {
     !source.hosts.includes(u.hostname)
   )
     throw new Error('Link leaves this publisher’s approved domain.');
+  if (source.kind === 'github-release') {
+    const path = decodeURIComponent(u.pathname).toLowerCase();
+    const repo = source.repo.toLowerCase();
+    const allowed =
+      u.hostname === 'github.com'
+        ? path === `/${repo}/releases.atom` || path.startsWith(`/${repo}/releases/tag/`)
+        : u.hostname === 'api.github.com' && path.startsWith(`/repos/${repo}/releases/tags/`);
+    if (!allowed || /[\\\0]/.test(path) || path.split('/').some((p) => p === '..' || p === '.'))
+      throw new Error('Release link leaves this project’s approved repository.');
+  }
   // Hugging Face hosts user/organization blogs as well as its own editorial
   // blog. A trusted hosting platform is not proof of a trusted author.
   if (
@@ -81,7 +94,10 @@ export async function fetchText(url, source, fetcher = fetch) {
       redirect: 'manual',
       headers: {
         'User-Agent': 'ButlerLocal/1.0 (personal news reader)',
-        Accept: 'application/rss+xml, application/atom+xml, text/html, application/xml, text/xml',
+        Accept:
+          new URL(target).hostname === 'api.github.com'
+            ? 'application/vnd.github+json'
+            : 'application/rss+xml, application/atom+xml, text/html, application/xml, text/xml',
       },
       signal: AbortSignal.timeout(18000),
     });
@@ -120,14 +136,31 @@ export function parseFeed(xml, source, lookbackHours, now = Date.now()) {
       );
       const url = trustedUrl(typeof link === 'string' ? link : link?.['@_href'], source);
       // An edit timestamp must not make an old announcement look new.
-      const rawDate = item.pubDate || item.published;
+      // GitHub Atom exposes an update date; it is only a discovery hint.
+      // The release API must confirm published_at before a draft is created.
+      const rawDate =
+        item.pubDate ||
+        item.published ||
+        (source.kind === 'github-release' ? item.updated : undefined);
       const date = Date.parse(rawDate);
-      const title = plain(typeof item.title === 'object' ? item.title['#text'] : item.title);
+      let title = plain(typeof item.title === 'object' ? item.title['#text'] : item.title);
       if (
         !title ||
         !Number.isFinite(date) ||
         date > now + 300000 ||
         now - date > lookbackHours * 3600000
+      )
+        return [];
+      if (source.kind === 'github-release') {
+        if (/\b(alpha|beta|rc\d*|nightly|dev\d*|canary|preview)\b/i.test(title + ' ' + url))
+          return [];
+        title = `${source.name.replace(/ releases$/, '')}: ${title}`;
+      }
+      if (
+        source.aiOnly &&
+        !/\b(ai|artificial intelligence|machine learning|deep learning|llm|llms|generative|neural|robotics?|inference|language model|computer vision|agentic|copilot|gemini)\b/i.test(
+          title + ' ' + plain(item.description || item.summary || item.content?.['#text']),
+        )
       )
         return [];
       // NVIDIA also publishes gaming stories; keep its feed scoped to AI.
@@ -151,6 +184,45 @@ export function parseFeed(xml, source, lookbackHours, now = Date.now()) {
       return [];
     }
   });
+}
+
+export async function readArticle(
+  article,
+  source,
+  lookbackHours,
+  fetcher = fetchText,
+  now = Date.now(),
+) {
+  if (source.kind !== 'github-release') {
+    const page = await fetcher(article.url, source);
+    return { ...article, url: page.url, ...extractArticle(page.text) };
+  }
+  const url = new URL(trustedUrl(article.url, source));
+  const prefix = `/${source.repo}/releases/tag/`;
+  if (!url.pathname.toLowerCase().startsWith(prefix.toLowerCase()))
+    throw new Error('Not a project release page.');
+  const tag = decodeURIComponent(url.pathname.slice(prefix.length));
+  const apiUrl = `https://api.github.com/repos/${source.repo}/releases/tags/${encodeURIComponent(tag)}`;
+  const page = await fetcher(apiUrl, source);
+  const release = JSON.parse(page.text);
+  const published = Date.parse(release.published_at);
+  if (
+    release.draft ||
+    release.prerelease ||
+    !Number.isFinite(published) ||
+    published > now + 300000 ||
+    now - published > lookbackHours * 3600000
+  )
+    throw new Error('Release is unpublished, a prerelease, or outside the freshness window.');
+  const canonical = trustedUrl(release.html_url, source);
+  if (canonical !== article.url || release.tag_name !== tag)
+    throw new Error('Release identity does not match the feed.');
+  if (typeof release.body !== 'string' || release.body.length > 200000)
+    throw new Error('Release notes are missing or too large.');
+  const content = extractArticle(
+    `<article>${marked.parse(release.body, { async: false })}</article>`,
+  );
+  return { ...article, url: canonical, publishedAt: new Date(published).toISOString(), ...content };
 }
 export function extractArticle(html) {
   const $ = cheerio.load(html);

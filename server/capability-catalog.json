@@ -1,0 +1,2434 @@
+{
+  "workers": [
+    {
+      "role": "board-deck-builder",
+      "category": "business"
+    },
+    {
+      "role": "business-plan-builder",
+      "category": "business"
+    },
+    {
+      "role": "competitor-analyst",
+      "category": "business"
+    },
+    {
+      "role": "customer-research-interviewer",
+      "category": "business"
+    },
+    {
+      "role": "founder-journal-coach",
+      "category": "business"
+    },
+    {
+      "role": "fundraising-pitch-coach",
+      "category": "business"
+    },
+    {
+      "role": "gtm-strategist",
+      "category": "business"
+    },
+    {
+      "role": "hiring-jd-writer",
+      "category": "business"
+    },
+    {
+      "role": "market-sizing-analyst",
+      "category": "business"
+    },
+    {
+      "role": "one-pager-builder",
+      "category": "business"
+    },
+    {
+      "role": "partnership-deal-structurer",
+      "category": "business"
+    },
+    {
+      "role": "pricing-strategist",
+      "category": "business"
+    },
+    {
+      "role": "unit-economics-analyst",
+      "category": "business"
+    },
+    {
+      "role": "blog-post-writer",
+      "category": "content"
+    },
+    {
+      "role": "case-study-writer",
+      "category": "content"
+    },
+    {
+      "role": "email-copywriter",
+      "category": "content"
+    },
+    {
+      "role": "landing-page-copywriter",
+      "category": "content"
+    },
+    {
+      "role": "linkedin-post-writer",
+      "category": "content"
+    },
+    {
+      "role": "newsletter-writer",
+      "category": "content"
+    },
+    {
+      "role": "podcast-show-notes-writer",
+      "category": "content"
+    },
+    {
+      "role": "press-release-writer",
+      "category": "content"
+    },
+    {
+      "role": "technical-docs-writer",
+      "category": "content"
+    },
+    {
+      "role": "tweet-thread-writer",
+      "category": "content"
+    },
+    {
+      "role": "video-script-writer",
+      "category": "content"
+    },
+    {
+      "role": "youtube-script-writer",
+      "category": "content"
+    },
+    {
+      "role": "ab-test-analyzer",
+      "category": "data"
+    },
+    {
+      "role": "analytics-narrator",
+      "category": "data"
+    },
+    {
+      "role": "cohort-analyst",
+      "category": "data"
+    },
+    {
+      "role": "csv-investigator",
+      "category": "data"
+    },
+    {
+      "role": "dashboard-designer",
+      "category": "data"
+    },
+    {
+      "role": "data-cleaner",
+      "category": "data"
+    },
+    {
+      "role": "data-vis-designer",
+      "category": "data"
+    },
+    {
+      "role": "etl-pipeline-builder",
+      "category": "data"
+    },
+    {
+      "role": "metric-definer",
+      "category": "data"
+    },
+    {
+      "role": "spreadsheet-formula-builder",
+      "category": "data"
+    },
+    {
+      "role": "sql-expert",
+      "category": "data"
+    },
+    {
+      "role": "sql-query-optimizer",
+      "category": "data"
+    },
+    {
+      "role": "api-designer",
+      "category": "engineering"
+    },
+    {
+      "role": "bug-hunter",
+      "category": "engineering"
+    },
+    {
+      "role": "ci-cd-architect",
+      "category": "engineering"
+    },
+    {
+      "role": "code-reviewer",
+      "category": "engineering"
+    },
+    {
+      "role": "database-schema-designer",
+      "category": "engineering"
+    },
+    {
+      "role": "dependency-upgrader",
+      "category": "engineering"
+    },
+    {
+      "role": "git-rebase-coach",
+      "category": "engineering"
+    },
+    {
+      "role": "legacy-code-explainer",
+      "category": "engineering"
+    },
+    {
+      "role": "observability-engineer",
+      "category": "engineering"
+    },
+    {
+      "role": "performance-profiler",
+      "category": "engineering"
+    },
+    {
+      "role": "refactor-specialist",
+      "category": "engineering"
+    },
+    {
+      "role": "security-auditor",
+      "category": "engineering"
+    },
+    {
+      "role": "tech-debt-prioritizer",
+      "category": "engineering"
+    },
+    {
+      "role": "test-writer",
+      "category": "engineering"
+    },
+    {
+      "role": "typescript-migrator",
+      "category": "engineering"
+    },
+    {
+      "role": "hindi-english-content-writer",
+      "category": "india"
+    },
+    {
+      "role": "india-tax-filing-helper",
+      "category": "india"
+    },
+    {
+      "role": "instagram-reels-script-writer",
+      "category": "india"
+    },
+    {
+      "role": "whatsapp-marketing-writer",
+      "category": "india"
+    },
+    {
+      "role": "zomato-swiggy-listing-optimizer",
+      "category": "india"
+    },
+    {
+      "role": "cease-and-desist-drafter",
+      "category": "legal"
+    },
+    {
+      "role": "data-protection-checker",
+      "category": "legal"
+    },
+    {
+      "role": "employment-contract-reviewer",
+      "category": "legal"
+    },
+    {
+      "role": "gst-india-helper",
+      "category": "legal"
+    },
+    {
+      "role": "licensing-agreement-reviewer",
+      "category": "legal"
+    },
+    {
+      "role": "nda-reviewer",
+      "category": "legal"
+    },
+    {
+      "role": "privacy-policy-drafter",
+      "category": "legal"
+    },
+    {
+      "role": "tos-drafter",
+      "category": "legal"
+    },
+    {
+      "role": "trademark-research",
+      "category": "legal"
+    },
+    {
+      "role": "vendor-contract-reviewer",
+      "category": "legal"
+    },
+    {
+      "role": "ad-copywriter",
+      "category": "marketing"
+    },
+    {
+      "role": "brand-voice-coach",
+      "category": "marketing"
+    },
+    {
+      "role": "cold-outreach-writer",
+      "category": "marketing"
+    },
+    {
+      "role": "content-calendar-planner",
+      "category": "marketing"
+    },
+    {
+      "role": "funnel-architect",
+      "category": "marketing"
+    },
+    {
+      "role": "growth-hacker",
+      "category": "marketing"
+    },
+    {
+      "role": "influencer-pitch-writer",
+      "category": "marketing"
+    },
+    {
+      "role": "lifecycle-marketing-strategist",
+      "category": "marketing"
+    },
+    {
+      "role": "paid-campaign-optimizer",
+      "category": "marketing"
+    },
+    {
+      "role": "retention-strategist",
+      "category": "marketing"
+    },
+    {
+      "role": "seo-strategist",
+      "category": "marketing"
+    },
+    {
+      "role": "book-summarizer",
+      "category": "personal"
+    },
+    {
+      "role": "burnout-recovery-coach",
+      "category": "personal"
+    },
+    {
+      "role": "financial-planner",
+      "category": "personal"
+    },
+    {
+      "role": "fitness-planner",
+      "category": "personal"
+    },
+    {
+      "role": "interview-prepper",
+      "category": "personal"
+    },
+    {
+      "role": "journaling-prompter",
+      "category": "personal"
+    },
+    {
+      "role": "learning-coach",
+      "category": "personal"
+    },
+    {
+      "role": "negotiation-coach",
+      "category": "personal"
+    },
+    {
+      "role": "nutrition-coach",
+      "category": "personal"
+    },
+    {
+      "role": "parenting-advisor",
+      "category": "personal"
+    },
+    {
+      "role": "relationship-letter-writer",
+      "category": "personal"
+    },
+    {
+      "role": "resume-writer",
+      "category": "personal"
+    },
+    {
+      "role": "side-project-coach",
+      "category": "personal"
+    },
+    {
+      "role": "travel-planner",
+      "category": "personal"
+    },
+    {
+      "role": "calendar-optimizer",
+      "category": "productivity"
+    },
+    {
+      "role": "customer-support-responder",
+      "category": "productivity"
+    },
+    {
+      "role": "decision-journal",
+      "category": "productivity"
+    },
+    {
+      "role": "delegation-coach",
+      "category": "productivity"
+    },
+    {
+      "role": "focus-coach",
+      "category": "productivity"
+    },
+    {
+      "role": "inbox-triage",
+      "category": "productivity"
+    },
+    {
+      "role": "kpi-dashboard-builder",
+      "category": "productivity"
+    },
+    {
+      "role": "meeting-summarizer",
+      "category": "productivity"
+    },
+    {
+      "role": "note-organizer",
+      "category": "productivity"
+    },
+    {
+      "role": "okr-coach",
+      "category": "productivity"
+    },
+    {
+      "role": "one-on-one-prepper",
+      "category": "productivity"
+    },
+    {
+      "role": "project-status-reporter",
+      "category": "productivity"
+    },
+    {
+      "role": "retrospective-facilitator",
+      "category": "productivity"
+    },
+    {
+      "role": "weekly-review-coach",
+      "category": "productivity"
+    }
+  ],
+  "skills": [
+    {
+      "role": "ai-content-policy",
+      "category": "AI & Technology"
+    },
+    {
+      "role": "ai-ethics-policy",
+      "category": "AI & Technology"
+    },
+    {
+      "role": "ai-use-case-finder",
+      "category": "AI & Technology"
+    },
+    {
+      "role": "automation-workflow",
+      "category": "AI & Technology"
+    },
+    {
+      "role": "ad-copy",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "ad-creative-brief",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "ad-performance-report",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "ad-spend-calculator",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "affiliate-program",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "affiliate-recruitment",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "affiliate-terms",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "bundle-creator",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "cross-sell-strategy",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "discount-strategy",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "facebook-ad-campaign",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "google-ads-campaign",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "high-ticket-sales-page",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "linkedin-ad-campaign",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "lookalike-audience-plan",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "media-buy-plan",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "podcast-ad-script",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "retargeting-strategy",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "sales-page",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "tiktok-ad-script",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "tripwire-offer",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "youtube-ad-script",
+      "category": "Ads & Paid Media"
+    },
+    {
+      "role": "ab-test-plan",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "analytics-setup-guide",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "attribution-model",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "benchmarking-report",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "cohort-analysis",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "conversion-funnel-analysis",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "customer-lifetime-value",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "data-collection-plan",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "data-dashboard-design",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "feedback-analysis",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "grant-report",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "impact-report",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "kpi-dashboard",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "marketplace-fee-structure",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "marketplace-metrics",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "metric-definition-guide",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "nonprofit-board-packet",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "prompt-library",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "saas-metrics-dashboard",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "sentiment-analysis",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "social-impact-measurement",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "survey-analysis",
+      "category": "Analytics & Data"
+    },
+    {
+      "role": "brand-architecture",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "brand-audit",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "brand-identity-guide",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "brand-positioning-statement",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "brand-refresh",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "brand-tagline",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "brand-voice-guide",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "color-palette-generator",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "executive-resume",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "expert-positioning",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "icon-set-brief",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "merch-design-brief",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "mission-statement",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "naming-workshop",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "packaging-brief",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "portfolio-page",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "presentation-template-guide",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "rebrand-plan",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "signage-brief",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "signature-talk",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "speaking-one-sheet",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "style-tile",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "unboxing-experience",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "visual-identity-brief",
+      "category": "Branding & Design"
+    },
+    {
+      "role": "agency-onboarding",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "client-feedback-system",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "client-intake-form",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "client-report-template",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "client-transformation-story",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "cohort-program",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "consulting-framework",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "consulting-proposal-template",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "diagnostic-assessment",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "group-program-design",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "industry-association-plan",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "mastermind-group",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "project-scope-change",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "quiz-generator",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "service-guarantee",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "service-productization",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "skill-assessment",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "survey-builder",
+      "category": "Client & Consulting"
+    },
+    {
+      "role": "about-page",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "article-rewriter",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "authority-content-strategy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "blog-post",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "book-outline",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "book-proposal",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "brand-story",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "caption-writer",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "case-study",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "collection-page-copy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "comparison-article",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-audit",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-brief",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-calendar",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-cluster-plan",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-gap-finder",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-pillar-strategy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-repurpose",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "content-style-guide",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "donation-page-copy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "ebook-outline",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "expert-roundup-pitch",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "faq-generator",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "feature-announcement",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "ghostwriter-brief",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "headline-generator",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "help-center-article",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "hook-generator",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "landing-page-copy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "linkedin-article",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "listicle-generator",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "microcopy-writer",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "newsletter-builder",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "newsletter-strategy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "pillar-page",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "podcast-one-sheet",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "podcast-show-notes",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "press-kit",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "press-release",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "pricing-page-copy",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "product-changelog",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "product-description",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "product-faq",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "professional-bio",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "recipe-card",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "release-notes",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "script-to-blog",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "seo-content-brief",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "speech-writer",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "thought-leader-content-plan",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "thought-leadership",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "tutorial-writer",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "video-script",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "viral-content-formula",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "white-paper",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "youtube-thumbnail",
+      "category": "Content & Copywriting"
+    },
+    {
+      "role": "certification-program",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "class-schedule-planner",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "continuing-education",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "course-outline",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "curriculum-review",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "fitness-program-outline",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "homework-assignment",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "learning-path",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "lesson-plan",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "micro-course",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "nutrition-content-plan",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "podcast-launch",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "student-feedback-form",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "study-guide",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "ted-talk-outline",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "webinar-planner",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "wellness-assessment",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "wellness-workshop-plan",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "workshop-builder",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "workshop-handout",
+      "category": "Courses & Education"
+    },
+    {
+      "role": "cross-border-selling",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "dropshipping-supplier-brief",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "exchange-policy",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "food-delivery-strategy",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "food-truck-business-plan",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "gift-guide",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "investment-property-analysis",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "lease-agreement-checklist",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "marketplace-listing",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "neighborhood-guide",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "open-house-plan",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "product-recall-plan",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "product-sourcing-brief",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "property-listing",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "property-management-sop",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "real-estate-crm-setup",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "real-estate-newsletter",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "rental-listing",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "seasonal-inventory-plan",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "seller-onboarding",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "size-guide",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "store-launch-plan",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "subscription-box-plan",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "wholesale-catalog",
+      "category": "E-commerce & Products"
+    },
+    {
+      "role": "abandoned-cart-email",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "ambassador-program",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "black-friday-emails",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "cart-recovery-sms",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "cause-marketing-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "cold-outreach",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "customer-review-strategy",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "downsell-sequence",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "drip-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-ab-test-plan",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-deliverability-audit",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-design-system",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-list-cleanup",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-newsletter-template",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-preference-center",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-sequence",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "email-subject-line-tester",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "engagement-playbook",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "flash-sale-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "launch-email-sequence",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "loyalty-program",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "milestone-email",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "order-bump-copy",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "payment-plan-offer",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "price-increase-notice",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "product-launch-email",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "re-engagement-email",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "referral-program",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "renewal-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "seasonal-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "social-proof-collector",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "testimonial-collector",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "thank-you-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "transactional-email",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "trial-to-paid-email",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "two-sided-email-strategy",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "upsell-sequence",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "user-generated-content",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "waitlist-builder",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "webinar-email-sequence",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "welcome-sequence",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "win-back-campaign",
+      "category": "Email Marketing & Automation"
+    },
+    {
+      "role": "award-application",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "beta-launch-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "catering-proposal",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "conference-planner",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "digital-product-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-budget-planner",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-follow-up",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-marketing-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-planner",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-registration-page",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-run-of-show",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "event-sponsorship-proposal",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "hybrid-event-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "launch-assets",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "launch-checklist",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "marketplace-launch-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "networking-event-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "product-hunt-launch",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "product-launch-plan",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "retreat-planner",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "speaker-outreach",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "speaking-proposal",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "sponsor-thank-you",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "virtual-event-platform",
+      "category": "Events & Speaking"
+    },
+    {
+      "role": "bookkeeping-setup",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "breakeven-analysis",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "budget-planner",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "cash-flow-forecast",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "commission-structure",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "compensation-plan",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "cost-analysis",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "expense-tracker",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "financial-dashboard",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "financial-model",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "financial-projection",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "freelance-rate-card",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "fundraising-tracker",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "grant-application",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "investor-update",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "invoice-template",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "pricing-analysis",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "pricing-calculator",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "pricing-strategy",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "profit-loss-report",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "quarterly-review",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "rate-negotiation-script",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "revenue-forecast",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "roi-calculator",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "subscription-metrics",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "tax-deduction-finder",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "tax-prep-checklist",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "unit-economics",
+      "category": "Finance & Pricing"
+    },
+    {
+      "role": "annual-review",
+      "category": "HR & Team"
+    },
+    {
+      "role": "benefits-guide",
+      "category": "HR & Team"
+    },
+    {
+      "role": "contractor-brief",
+      "category": "HR & Team"
+    },
+    {
+      "role": "culture-document",
+      "category": "HR & Team"
+    },
+    {
+      "role": "diversity-policy",
+      "category": "HR & Team"
+    },
+    {
+      "role": "employee-handbook",
+      "category": "HR & Team"
+    },
+    {
+      "role": "employee-survey",
+      "category": "HR & Team"
+    },
+    {
+      "role": "exit-interview-template",
+      "category": "HR & Team"
+    },
+    {
+      "role": "freelancer-management",
+      "category": "HR & Team"
+    },
+    {
+      "role": "hiring-scorecard",
+      "category": "HR & Team"
+    },
+    {
+      "role": "interview-question-bank",
+      "category": "HR & Team"
+    },
+    {
+      "role": "job-posting",
+      "category": "HR & Team"
+    },
+    {
+      "role": "mentorship-program",
+      "category": "HR & Team"
+    },
+    {
+      "role": "offboarding-checklist",
+      "category": "HR & Team"
+    },
+    {
+      "role": "offer-letter",
+      "category": "HR & Team"
+    },
+    {
+      "role": "okr-builder",
+      "category": "HR & Team"
+    },
+    {
+      "role": "onboarding-checklist",
+      "category": "HR & Team"
+    },
+    {
+      "role": "one-on-one-template",
+      "category": "HR & Team"
+    },
+    {
+      "role": "performance-review",
+      "category": "HR & Team"
+    },
+    {
+      "role": "pip-template",
+      "category": "HR & Team"
+    },
+    {
+      "role": "referral-bonus-plan",
+      "category": "HR & Team"
+    },
+    {
+      "role": "remote-team-handbook",
+      "category": "HR & Team"
+    },
+    {
+      "role": "remote-work-policy",
+      "category": "HR & Team"
+    },
+    {
+      "role": "succession-plan",
+      "category": "HR & Team"
+    },
+    {
+      "role": "team-building-plan",
+      "category": "HR & Team"
+    },
+    {
+      "role": "team-charter",
+      "category": "HR & Team"
+    },
+    {
+      "role": "training-manual",
+      "category": "HR & Team"
+    },
+    {
+      "role": "training-plan",
+      "category": "HR & Team"
+    },
+    {
+      "role": "api-documentation",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "health-disclaimer",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "no-code-app-plan",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "platform-help-center",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "platform-partnership",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "platform-trust-system",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "restaurant-marketing-plan",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "restaurant-review-response",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "restaurant-sop",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "saas-evaluation",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "seasonal-menu-plan",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "supplement-disclaimer",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "tech-stack-recommendation",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "tenant-screening-checklist",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "tool-stack-audit",
+      "category": "Industry-Specific"
+    },
+    {
+      "role": "annual-report-writer",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "chatbot-script",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "churn-analysis",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "churn-prevention-playbook",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "complaint-resolution",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "customer-advisory-board",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "customer-health-score",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "customer-success-playbook",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "customer-support-kb",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "customer-win-story",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "feature-request-system",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "nps-survey",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "onboarding-flow",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "product-feedback-loop",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "review-response",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "saas-cancellation-flow",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "saas-onboarding-flow",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "satisfaction-survey",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "self-service-portal",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "service-level-agreement",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "service-recovery-plan",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "support-response-templates",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "user-research-plan",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "voice-of-customer",
+      "category": "Launch & Growth"
+    },
+    {
+      "role": "accessibility-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "cease-and-desist",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "client-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "compliance-checklist",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "contract-writer",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "cookie-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "copyright-notice",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "data-processing-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "disclaimer-generator",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "expense-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "gdpr-compliance-checklist",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "independent-contractor-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "intellectual-property-audit",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "letter-of-intent",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "licensing-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "nda-template",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "non-compete-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "partnership-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "payment-terms-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "privacy-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "retainer-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "return-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "saas-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "shipping-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "subcontractor-agreement",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "terms-of-service",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "terms-of-use-app",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "trademark-application",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "waiver-release",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "workplace-policy",
+      "category": "Legal & Compliance"
+    },
+    {
+      "role": "nonprofit-fundraising-letter",
+      "category": "Nonprofit & Community"
+    },
+    {
+      "role": "volunteer-recruitment",
+      "category": "Nonprofit & Community"
+    },
+    {
+      "role": "annual-planning",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "batch-processing-system",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "business-continuity-plan",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "change-management-plan",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "client-crm",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "decision-matrix",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "delegation-framework",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "energy-management",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "escalation-procedure",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "fulfillment-sop",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "inventory-management",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "knowledge-base-builder",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "meeting-agenda",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "meeting-notes",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "morning-routine-builder",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "process-automation-audit",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "project-tracker",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "quality-assurance-checklist",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "report-automation",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "retrospective",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "risk-assessment",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "scope-of-work",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "sop-builder",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "status-update-template",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "task-prioritization",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "time-audit",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "vendor-evaluation",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "vendor-onboarding",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "weekly-report",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "workflow-mapper",
+      "category": "Operations & Systems"
+    },
+    {
+      "role": "checkout-optimizer",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "featured-snippet-optimizer",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "google-business-profile",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "keyword-research",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "landing-page-audit",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "link-building-plan",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "local-seo-plan",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "marketplace-seo",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "meta-tag-optimizer",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "platform-migration",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "product-listing-optimizer",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "schema-markup-guide",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "seo-audit",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "seo-competitor-analysis",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "seo-migration-plan",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "seo-reporting-template",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "site-architecture-plan",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "store-page-audit",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "technical-seo-checklist",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "youtube-seo",
+      "category": "SEO & Search"
+    },
+    {
+      "role": "business-plan",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "coaching-framework",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "collaboration-agreement",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "competitor-analysis",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "customer-journey-map",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "customer-persona",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "customer-segmentation",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "discovery-call-script",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "joint-venture-proposal",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "lead-magnet",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "market-research",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "market-sizing",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "membership-site-plan",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "objection-handler",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "partnership-proposal",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "pitch-deck",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "product-comparison",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "product-roadmap",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "proposal-writer",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "revenue-model",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "sales-battlecard",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "sales-deck",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "sales-email-template",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "sales-funnel-builder",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "sales-script",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "strategic-alliance-plan",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "swot-analysis",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "value-proposition-canvas",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "webinar-sales-script",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "win-loss-analysis",
+      "category": "Sales & Funnels"
+    },
+    {
+      "role": "author-platform-plan",
+      "category": "Social Media"
+    },
+    {
+      "role": "brand-photography-brief",
+      "category": "Social Media"
+    },
+    {
+      "role": "co-marketing-plan",
+      "category": "Social Media"
+    },
+    {
+      "role": "community-launch",
+      "category": "Social Media"
+    },
+    {
+      "role": "community-moderation",
+      "category": "Social Media"
+    },
+    {
+      "role": "crisis-comms",
+      "category": "Social Media"
+    },
+    {
+      "role": "facebook-group-plan",
+      "category": "Social Media"
+    },
+    {
+      "role": "food-photography-brief",
+      "category": "Social Media"
+    },
+    {
+      "role": "guest-post-pitch",
+      "category": "Social Media"
+    },
+    {
+      "role": "hashtag-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "influencer-campaign-brief",
+      "category": "Social Media"
+    },
+    {
+      "role": "influencer-outreach",
+      "category": "Social Media"
+    },
+    {
+      "role": "instagram-carousel",
+      "category": "Social Media"
+    },
+    {
+      "role": "linkedin-profile-optimizer",
+      "category": "Social Media"
+    },
+    {
+      "role": "linkedin-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "media-kit",
+      "category": "Social Media"
+    },
+    {
+      "role": "meme-content-brief",
+      "category": "Social Media"
+    },
+    {
+      "role": "menu-design-brief",
+      "category": "Social Media"
+    },
+    {
+      "role": "networking-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "personal-brand-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "pinterest-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "platform-community-guidelines",
+      "category": "Social Media"
+    },
+    {
+      "role": "podcast-guest-pitch",
+      "category": "Social Media"
+    },
+    {
+      "role": "pr-pitch",
+      "category": "Social Media"
+    },
+    {
+      "role": "product-photography-brief",
+      "category": "Social Media"
+    },
+    {
+      "role": "reddit-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "short-form-video-plan",
+      "category": "Social Media"
+    },
+    {
+      "role": "social-listening-plan",
+      "category": "Social Media"
+    },
+    {
+      "role": "social-media-audit",
+      "category": "Social Media"
+    },
+    {
+      "role": "social-media-calendar",
+      "category": "Social Media"
+    },
+    {
+      "role": "social-media-graphics",
+      "category": "Social Media"
+    },
+    {
+      "role": "social-media-policy",
+      "category": "Social Media"
+    },
+    {
+      "role": "social-media-strategy",
+      "category": "Social Media"
+    },
+    {
+      "role": "sponsor-pitch",
+      "category": "Social Media"
+    },
+    {
+      "role": "thread-hook-writer",
+      "category": "Social Media"
+    },
+    {
+      "role": "tiktok-script",
+      "category": "Social Media"
+    },
+    {
+      "role": "twitter-thread",
+      "category": "Social Media"
+    },
+    {
+      "role": "youtube-strategy",
+      "category": "Social Media"
+    }
+  ]
+}

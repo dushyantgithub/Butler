@@ -17,10 +17,12 @@ import {
   Settings2,
   Sparkles,
   VolumeX,
+  Users,
   X,
 } from 'lucide-react';
 import { createOfficeWorld } from './game/world.js';
 import './game/game.css';
+import EmployeeDrawer from './EmployeeDrawer.jsx';
 
 function ToyPortrait({ person }) {
   return (
@@ -53,6 +55,8 @@ export default function OfficeGame({
   latest.current = { navigate, openDraft, state };
   const [activity, setActivity] = useState({}),
     [selected, setSelected] = useState(null),
+    [drawer, setDrawer] = useState(false),
+    [draggedWorker, setDraggedWorker] = useState(null),
     [worldError, setWorldError] = useState(''),
     [motion, setMotion] = useState(
       () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -64,6 +68,12 @@ export default function OfficeGame({
       world.current = createOfficeWorld(host.current, {
         onSelect(id) {
           if (id === 'boss') latest.current.navigate('drafts');
+          else if (id.startsWith('worker:')) latest.current.navigate('workers:all:' + id.slice(7));
+          else if (id.startsWith('department:'))
+            latest.current.navigate(`workers:${id.split(':')[1]}`);
+          else if (id === 'workers' || id === 'projects') latest.current.navigate(id);
+          else if (id.startsWith('employee-') || !['researcher', 'manager', 'coffee'].includes(id))
+            latest.current.navigate('workers');
           else if (id === 'coffee') setSelected('coffee');
           else setSelected(id);
         },
@@ -90,6 +100,8 @@ export default function OfficeGame({
         closePanel();
         setSelected(null);
         setHelp(false);
+        setDrawer(false);
+        setDraggedWorker(null);
       }
     };
     window.addEventListener('keydown', listener);
@@ -103,11 +115,18 @@ export default function OfficeGame({
     : 0;
   const headings = {
     drafts: 'The boss’s desk',
+    workers: 'Employees & deployment',
+    projects: 'Projects & research',
     activity: 'The office journal',
     sources: 'Scout’s source library',
     settings: 'Office preferences',
   };
   const selectedAgent = selected && state?.agents[selected];
+  const canResearch = ['researcher', 'manager'].every(
+    (id) => state?.workers?.find((w) => w.id === id)?.deployment === 'deployed',
+  );
+  const deployedCount = state?.workers?.filter((w) => w.deployment === 'deployed').length || 0;
+  const lastResearch = state?.tasks.find((task) => task.agent === 'researcher' && task.finished_at);
   return (
     <main className="game-shell">
       <header className="game-topbar">
@@ -140,6 +159,26 @@ export default function OfficeGame({
         </div>
         <div className="game-top-actions">
           <button
+            onClick={() => {
+              closePanel();
+              setDrawer(!drawer);
+            }}
+            aria-expanded={drawer}
+            title="Employees & deployment"
+            aria-label="Employees & deployment"
+          >
+            <Users size={18} />
+            <span className="nav-action-label">Employees</span>
+          </button>
+          <button
+            onClick={() => navigate('projects')}
+            title="Projects & research"
+            aria-label="Projects & research"
+          >
+            <BriefcaseBusiness size={18} />
+            <span className="nav-action-label">Projects</span>
+          </button>
+          <button
             onClick={() => navigate('activity')}
             title="Office journal"
             aria-label="Office journal"
@@ -166,15 +205,52 @@ export default function OfficeGame({
           </span>
         </div>
       </header>
-      <section className="game-stage" aria-label="Your living office">
+      <section
+        className={'game-stage ' + (drawer ? 'drawer-open' : '')}
+        aria-label="Your living office"
+        onDragOver={(event) => {
+          if (draggedWorker && !busy) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+          }
+        }}
+        onDrop={async (event) => {
+          event.preventDefault();
+          const id = event.dataTransfer.getData('application/x-butler-worker');
+          if (!busy && draggedWorker === id && state?.workers.some((w) => w.id === id))
+            await action(
+              '/workers/' + id,
+              'PATCH',
+              { deployment: 'deployed' },
+              'Employee deployed. Choose Assign work in the employee drawer to begin.',
+            );
+          setDraggedWorker(null);
+        }}
+      >
+        {draggedWorker && (
+          <div className="employee-drop-target">
+            <Users size={36} />
+            <strong>
+              Drop {state?.workers.find((w) => w.id === draggedWorker)?.name} into the office
+            </strong>
+            <span>They’ll take a desk in their department.</span>
+          </div>
+        )}
+        {!deployedCount && !drawer && !panel && (
+          <button className="empty-office-invite" onClick={() => setDrawer(true)}>
+            <Users size={22} />
+            <strong>Your office is ready. Choose your team.</strong>
+            <span>Open employees and drag them onto the floor →</span>
+          </button>
+        )}
         <div className="game-world" ref={host} />
         <div className="office-location">
           <span>WELCOME TO THE OFFICE</span>
           <h1>
-            A small team.
+            Your growing team.
             <br />A world of possibilities.
           </h1>
-          <p>Pull up a chair, boss. We’ve got work to do.</p>
+          <p>Research, create, review. You make the final call.</p>
         </div>
         <div className="game-clock">
           <span className="sun-icon">☀</span>
@@ -208,22 +284,24 @@ export default function OfficeGame({
             {error}
           </div>
         )}
-        {visitor && !panel && (
-          <button className="visitor-request" onClick={() => openDraft(visitor.id)}>
-            <ToyPortrait person="manager" />
-            <span>
-              <small>QUINN IS AT YOUR DOOR</small>
-              <strong>“Got a minute, boss?”</strong>
+        {visitor &&
+          !panel &&
+          state?.workers?.find((w) => w.id === 'manager')?.deployment === 'deployed' && (
+            <button className="visitor-request" onClick={() => openDraft(visitor.id)}>
+              <ToyPortrait person="manager" />
               <span>
-                {visitor.editorial?.status === 'ready'
-                  ? 'Your polished draft is ready for a look.'
-                  : 'There’s a draft on your desk to discuss.'}
+                <small>QUINN IS AT YOUR DOOR</small>
+                <strong>“Got a minute, boss?”</strong>
+                <span>
+                  {visitor.editorial?.status === 'ready'
+                    ? 'Your polished draft is ready for a look.'
+                    : 'There’s a draft on your desk to discuss.'}
+                </span>
               </span>
-            </span>
-            <ArrowRight size={18} />
-            <i />
-          </button>
-        )}
+              <ArrowRight size={18} />
+              <i />
+            </button>
+          )}
         {activity.scene && !panel && (
           <div className="scene-caption">
             <span className="game-live-dot" />
@@ -269,24 +347,73 @@ export default function OfficeGame({
           </button>
         </div>
       </section>
+      {drawer && !panel && (
+        <EmployeeDrawer
+          state={state}
+          busy={busy}
+          action={action}
+          close={() => {
+            setDrawer(false);
+            setDraggedWorker(null);
+          }}
+          onDragStart={setDraggedWorker}
+          onDragEnd={() => setDraggedWorker(null)}
+          onDropWorker={async (id, x, y) => {
+            const bounds = host.current?.getBoundingClientRect();
+            if (
+              !busy &&
+              bounds &&
+              x >= bounds.left &&
+              x <= bounds.right &&
+              y >= bounds.top &&
+              y <= bounds.bottom &&
+              state?.workers.some((w) => w.id === id)
+            )
+              await action(
+                '/workers/' + id,
+                'PATCH',
+                { deployment: 'deployed' },
+                'Employee deployed. Choose Assign work to begin.',
+              );
+          }}
+          manage={() => {
+            setDrawer(false);
+            navigate('workers');
+          }}
+          assign={(id) => {
+            setDrawer(false);
+            navigate('workers:all:' + id);
+          }}
+        />
+      )}
       <footer className="game-bottom-bar">
         <div className="team-status">
           <div className="team-label">
             <span>ON THE FLOOR</span>
-            <small>{working ? `${working} on assignment` : 'The team is taking a breather'}</small>
+            <small>
+              {working
+                ? `${working} on assignment`
+                : `${state?.workers?.filter((w) => w.deployment === 'deployed').length || 0} employees deployed`}
+            </small>
           </div>
-          {['researcher', 'manager'].map((id) => (
-            <button className="game-team-member" key={id} onClick={() => setSelected(id)}>
-              <ToyPortrait person={id} />
-              <span>
-                <strong>
-                  {id === 'researcher' ? 'Scout' : 'Quinn'}
-                  <i className={state?.agents[id].status === 'working' ? 'working' : ''} />
-                </strong>
-                <small>{activity[id] || 'Settling in…'}</small>
-              </span>
-            </button>
-          ))}
+          {['researcher', 'manager']
+            .filter(
+              (id) =>
+                !state?.workers ||
+                state.workers.find((w) => w.id === id)?.deployment === 'deployed',
+            )
+            .map((id) => (
+              <button className="game-team-member" key={id} onClick={() => setSelected(id)}>
+                <ToyPortrait person={id} />
+                <span>
+                  <strong>
+                    {id === 'researcher' ? 'Scout' : 'Quinn'}
+                    <i className={state?.agents[id].status === 'working' ? 'working' : ''} />
+                  </strong>
+                  <small>{activity[id] || 'Settling in…'}</small>
+                </span>
+              </button>
+            ))}
         </div>
         <div className="game-primary-actions">
           <button className="game-inbox" onClick={() => navigate('drafts')}>
@@ -309,11 +436,18 @@ export default function OfficeGame({
               className="game-assign"
               disabled={busy || !state}
               onClick={() =>
-                action('/scan', 'POST', {}, 'Scout has a new assignment. Watch the research desk.')
+                canResearch
+                  ? action(
+                      '/scan',
+                      'POST',
+                      {},
+                      'Scout has a new assignment. Watch the research desk.',
+                    )
+                  : setDrawer(true)
               }
             >
               <Plus size={18} />
-              New assignment
+              {canResearch ? 'Research news' : 'Add employees'}
             </button>
           )}
         </div>
@@ -327,9 +461,7 @@ export default function OfficeGame({
               ? 'Local brain is resting'
               : 'Local engine not connected'}
           <i>·</i>
-          {state?.settings.autoPublish
-            ? 'Automatic publishing enabled'
-            : 'You approve before anything goes live'}
+          You approve before anything goes live
         </span>
         <span>
           Built little. Think big. <b>butler & co.</b>
@@ -389,11 +521,33 @@ export default function OfficeGame({
                     ? 'On assignment'
                     : activity[selected] || 'Ready when you are'}
                 </div>
+                {selected === 'researcher' &&
+                  lastResearch &&
+                  selectedAgent?.status !== 'working' && (
+                    <div className="research-report" role="status">
+                      <strong>Last news round</strong>
+                      <small>{new Date(lastResearch.finished_at).toLocaleString()}</small>
+                      <p>{lastResearch.detail}</p>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setSelected(null);
+                          navigate('activity');
+                        }}
+                      >
+                        Open office journal
+                      </button>
+                    </div>
+                  )}
                 <button
                   className="game-assign"
                   disabled={busy && selected === 'researcher'}
                   onClick={() => {
                     setSelected(null);
+                    if (!canResearch && selected === 'researcher') {
+                      setDrawer(true);
+                      return;
+                    }
                     if (selected === 'researcher')
                       action('/scan', 'POST', {}, 'Scout is heading to the research desk.');
                     else navigate('drafts');
@@ -462,14 +616,19 @@ export default function OfficeGame({
         </div>
       )}
       {panel && (
-        <div className="game-overlay" role="dialog" aria-modal="true" aria-label={headings[panel]}>
+        <div
+          className="game-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={headings[panel.split(':')[0]]}
+        >
           <div className="game-overlay-top">
             <button onClick={closePanel}>
               <span>←</span>Back to the office
             </button>
             <span>
               <BriefcaseBusiness size={16} />
-              {headings[panel]}
+              {headings[panel.split(':')[0]]}
             </span>
             <button aria-label="Close desk" onClick={closePanel}>
               <X size={20} />

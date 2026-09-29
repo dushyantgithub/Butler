@@ -37,6 +37,8 @@ import {
 import twitterText from 'twitter-text';
 import './styles.css';
 import OfficeGame from './OfficeGame.jsx';
+import CampaignGraphic from './CampaignGraphic.jsx';
+import { WorkforcePage, ProjectsPage } from './OfficeManagement.jsx';
 
 const names = { researcher: 'Scout', manager: 'Quinn', boss: 'You' };
 const nav = [
@@ -244,6 +246,17 @@ function App() {
             returnToOffice={() => setPage('office')}
           />
         )}
+        {state && page.startsWith('workers') && (
+          <WorkforcePage
+            key={page}
+            initialDepartment={page.split(':')[1] || 'all'}
+            initialEmployee={page.split(':')[2] || null}
+            state={state}
+            action={action}
+            busy={busy}
+          />
+        )}
+        {state && page === 'projects' && <ProjectsPage state={state} action={action} busy={busy} />}
         {state && page === 'activity' && <ActivityPage state={state} />}
         {state && page === 'sources' && <SourcesPage state={state} action={action} busy={busy} />}
         {state && page === 'settings' && (
@@ -352,7 +365,7 @@ function DraftsPage({ state, selectedId, setSelectedId, action, busy, returnToOf
                   <p>{d.summary}</p>
                   <div className="source-pill">
                     <ShieldCheck size={14} />
-                    {d.sourceName} · Source checked
+                    {d.sourceName} · {d.kind === 'campaign' ? 'Project brief' : 'Source checked'}
                   </div>
                   <div className="draft-card-footer">
                     <span>
@@ -418,7 +431,11 @@ function DraftEditor({ draft, action, busy, onBack, returnToOffice }) {
         <section className="panel editor">
           <div className="panel-heading">
             <Badge status={draft.status} />
-            <span className="muted">Prepared by Scout & Quinn</span>
+            <span className="muted">
+              {draft.kind === 'campaign'
+                ? `Campaign for ${draft.projectName}`
+                : 'Prepared by Scout & Quinn'}
+            </span>
           </div>
           <h2>{draft.title}</h2>
           <div className={`editorial-state ${draft.editorial?.status || 'needs-writing'}`}>
@@ -428,12 +445,14 @@ function DraftEditor({ draft, action, busy, onBack, returnToOffice }) {
               : draft.editorial?.status === 'edited'
                 ? 'Edited draft · Review before approval'
                 : draft.editorial?.status === 'needs-review'
-                  ? 'Editor flagged details · Check the notes before approval'
+                  ? draft.kind === 'campaign'
+                    ? 'Campaign draft · CEO review required'
+                    : 'Editor flagged details · Check the notes before approval'
                   : 'Basic first draft · Ask Quinn for a refined version'}
           </div>
           {draft.keyPoints?.length > 0 && (
             <div className="editorial-brief">
-              <h3>Scout’s brief</h3>
+              <h3>{draft.kind === 'campaign' ? 'Campaign brief' : 'Scout’s brief'}</h3>
               <p>{draft.summary}</p>
               <ul>
                 {draft.keyPoints.map((point, i) => (
@@ -571,110 +590,162 @@ function DraftEditor({ draft, action, busy, onBack, returnToOffice }) {
           )}
         </section>
         <aside className="evidence-column">
-          <section className="panel evidence-panel">
-            <span className="eyebrow">FOLLOW THE FACTS</span>
-            <h2>
-              <ShieldCheck size={20} />
-              The source file
-            </h2>
-            <a className="original-source" href={draft.url} target="_blank" rel="noreferrer">
-              <span>
-                <strong>{draft.sourceName}</strong>
-                <small>{draft.evidence.domain}</small>
-              </span>
-              <ExternalLink size={16} />
-            </a>
-            <dl>
-              <div>
-                <dt>Announced</dt>
-                <dd>{formatDate(draft.publishedAt)}</dd>
-              </div>
-              <div>
-                <dt>Source checked</dt>
-                <dd>{formatDate(draft.checkedAt)}</dd>
-              </div>
-              <div>
-                <dt>Brief written with</dt>
-                <dd>
-                  {draft.method === 'editor-refined'
-                    ? 'Editorially refined'
-                    : draft.method === 'local-model'
-                      ? 'Local LLM'
-                      : 'Source excerpts'}
-                </dd>
-              </div>
-            </dl>
-            <div className="evidence-check">
-              <Check size={15} />
-              {draft.evidence.primarySource
-                ? 'Approved publisher and article path'
-                : 'Publisher policy no longer satisfied'}
-            </div>
-            <div className="evidence-check">
-              <Check size={15} />
-              Excerpt matched to article
-            </div>
-            <h4>Supporting excerpt</h4>
-            <blockquote>“{draft.quote}”</blockquote>
-            <p className="evidence-limit">
-              {draft.reviewNote && (
-                <>
-                  <strong>{draft.reviewNote}</strong>
-                  <br />
-                </>
-              )}
-              This confirms what the publisher said, not independent truth. AI authorship is
-              unknown. Check the original before approving.
-            </p>
-            <details>
-              <summary>Researcher’s internal brief</summary>
+          {draft.kind === 'campaign' ? (
+            <section className="panel evidence-panel campaign-evidence">
+              <span className="eyebrow">PROJECT RESEARCH & CREATIVE</span>
+              <h2>{draft.projectName}</h2>
               <p>{draft.summary}</p>
-              {draft.method === 'local-model' && (
-                <p className="form-hint">
-                  AI-written summary; not independently verified or included in automatic posts.
+              <CampaignGraphic draft={draft} />
+              <h3>Visual production brief</h3>
+              <p className="creative-brief">{draft.visualConcept}</p>
+              <p className="form-hint">
+                Use the downloadable graphic or develop this production brief into custom artwork.
+                Publishing sends text only; paid ads are not placed.
+              </p>
+              <h3>Evidence available to the worker</h3>
+              <p className="form-hint">
+                The worker used bounded source excerpts and a shortened project brief. The original
+                facts are retained below for your review.
+              </p>
+              <details>
+                <summary>Project brief sent to the worker</summary>
+                <p className="creative-brief">
+                  {Object.entries(draft.modelBrief || {})
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join('\n\n')}
                 </p>
-              )}
-            </details>
-            {!locked && (
-              <div className="rewrite-box">
-                <label htmlFor="writing-notes">Give Quinn editorial direction</label>
-                <textarea
-                  id="writing-notes"
-                  value={notes}
-                  maxLength={600}
-                  disabled={busy}
-                  placeholder="e.g. Focus on what developers can actually use. More concrete detail, less hype."
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-                <button
-                  className="button secondary"
-                  disabled={busy || dirty}
-                  onClick={async () => {
-                    if (
-                      await action(
-                        `/drafts/${draft.id}/refine`,
-                        'POST',
-                        { notes },
-                        'Quinn is rewriting and checking the draft. Watch the social studio.',
-                      )
-                    )
-                      returnToOffice?.();
-                  }}
-                >
-                  <Sparkles size={15} />
-                  Ask Quinn to rewrite
-                </button>
-                {draft.lastRewriteError && (
-                  <p className="form-hint">Last rewrite: {draft.lastRewriteError}</p>
-                )}
-                {draft.editorial?.issues?.map((issue, i) => (
-                  <p className="form-hint" key={i}>
-                    {issue}
-                  </p>
-                ))}
+              </details>
+              <details>
+                <summary>Owner-provided facts at creation</summary>
+                <p className="creative-brief">
+                  {draft.projectSnapshot?.facts || 'No confirmed facts supplied.'}
+                </p>
+                <p>{draft.projectSnapshot?.products}</p>
+              </details>
+              {(draft.researchSources || []).map((source) => (
+                <details key={source.url}>
+                  <summary>{source.title || source.url}</summary>
+                  <a href={source.url} target="_blank" rel="noreferrer">
+                    Open research source
+                  </a>
+                  <small> · {formatDate(source.checkedAt)}</small>
+                  <p>{source.text}</p>
+                </details>
+              ))}
+              {draft.editorial?.issues?.map((issue, i) => (
+                <p className="form-hint" key={i}>
+                  {issue}
+                </p>
+              ))}
+              <p>Skills used: {draft.usedSkills?.join(', ') || 'Employee specialty'}</p>
+              <p>{draft.caveat}</p>
+            </section>
+          ) : (
+            <section className="panel evidence-panel">
+              <span className="eyebrow">FOLLOW THE FACTS</span>
+              <h2>
+                <ShieldCheck size={20} />
+                The source file
+              </h2>
+              <a className="original-source" href={draft.url} target="_blank" rel="noreferrer">
+                <span>
+                  <strong>{draft.sourceName}</strong>
+                  <small>{draft.evidence.domain}</small>
+                </span>
+                <ExternalLink size={16} />
+              </a>
+              <dl>
+                <div>
+                  <dt>Announced</dt>
+                  <dd>{formatDate(draft.publishedAt)}</dd>
+                </div>
+                <div>
+                  <dt>Source checked</dt>
+                  <dd>{formatDate(draft.checkedAt)}</dd>
+                </div>
+                <div>
+                  <dt>Brief written with</dt>
+                  <dd>
+                    {draft.method === 'editor-refined'
+                      ? 'Editorially refined'
+                      : draft.method === 'local-model'
+                        ? 'Local LLM'
+                        : 'Source excerpts'}
+                  </dd>
+                </div>
+              </dl>
+              <div className="evidence-check">
+                <Check size={15} />
+                {draft.evidence.primarySource
+                  ? 'Approved publisher and article path'
+                  : 'Publisher policy no longer satisfied'}
               </div>
-            )}
-          </section>
+              <div className="evidence-check">
+                <Check size={15} />
+                Excerpt matched to article
+              </div>
+              <h4>Supporting excerpt</h4>
+              <blockquote>“{draft.quote}”</blockquote>
+              <p className="evidence-limit">
+                {draft.reviewNote && (
+                  <>
+                    <strong>{draft.reviewNote}</strong>
+                    <br />
+                  </>
+                )}
+                This confirms what the publisher said, not independent truth. AI authorship is
+                unknown. Check the original before approving.
+              </p>
+              <details>
+                <summary>Researcher’s internal brief</summary>
+                <p>{draft.summary}</p>
+                {draft.method === 'local-model' && (
+                  <p className="form-hint">
+                    AI-written summary; not independently verified or included in automatic posts.
+                  </p>
+                )}
+              </details>
+              {!locked && (
+                <div className="rewrite-box">
+                  <label htmlFor="writing-notes">Give Quinn editorial direction</label>
+                  <textarea
+                    id="writing-notes"
+                    value={notes}
+                    maxLength={600}
+                    disabled={busy}
+                    placeholder="e.g. Focus on what developers can actually use. More concrete detail, less hype."
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                  <button
+                    className="button secondary"
+                    disabled={busy || dirty}
+                    onClick={async () => {
+                      if (
+                        await action(
+                          `/drafts/${draft.id}/refine`,
+                          'POST',
+                          { notes },
+                          'Quinn is rewriting and checking the draft. Watch the social studio.',
+                        )
+                      )
+                        returnToOffice?.();
+                    }}
+                  >
+                    <Sparkles size={15} />
+                    Ask Quinn to rewrite
+                  </button>
+                  {draft.lastRewriteError && (
+                    <p className="form-hint">Last rewrite: {draft.lastRewriteError}</p>
+                  )}
+                  {draft.editorial?.issues?.map((issue, i) => (
+                    <p className="form-hint" key={i}>
+                      {issue}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
           {draft.deliveries.length > 0 && (
             <section className="panel delivery-panel">
               <h3>Publishing receipts</h3>
@@ -822,7 +893,11 @@ function ActivityPage({ state }) {
                       <strong>{t.title}</strong>
                       <small>{t.detail}</small>
                     </td>
-                    <td>{names[t.agent]}</td>
+                    <td>
+                      {state.workers?.find((w) => w.id === t.agent)?.name ||
+                        names[t.agent] ||
+                        t.agent}
+                    </td>
                     <td>
                       <Badge status={t.status} />
                     </td>
@@ -867,6 +942,16 @@ function ActivityPage({ state }) {
 }
 function SourcesPage({ state, action, busy }) {
   const enabled = state.settings.enabledSources;
+  const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('all');
+  const visible = state.sources.filter(
+    (source) =>
+      (kind === 'all' ||
+        (kind === 'releases'
+          ? source.kind === 'github-release'
+          : source.kind !== 'github-release')) &&
+      `${source.name} ${source.category}`.toLowerCase().includes(search.toLowerCase()),
+  );
   return (
     <>
       <PageHeader
@@ -885,8 +970,43 @@ function SourcesPage({ state, action, busy }) {
           </p>
         </div>
       </div>
+      <div className="source-tools panel">
+        <strong>
+          {state.sources.length} trusted source feeds · {enabled.length} enabled
+        </strong>
+        <div className="source-filters">
+          <input
+            aria-label="Search sources"
+            placeholder="Find a publisher or AI project…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select aria-label="Source type" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="all">All sources</option>
+            <option value="publishers">Publisher & research blogs</option>
+            <option value="releases">Official project releases</option>
+          </select>
+          <button
+            disabled={busy || enabled.length === state.sources.length}
+            onClick={() =>
+              action(
+                '/settings',
+                'PATCH',
+                { enabledSources: state.sources.map((s) => s.id) },
+                'All sources enabled.',
+              )
+            }
+          >
+            Enable all
+          </button>
+        </div>
+        <small>
+          Showing {visible.length} {visible.length === 1 ? 'source' : 'sources'}. Project feeds
+          cover the named repository only; news and research blogs are checked first.
+        </small>
+      </div>
       <div className="sources-grid">
-        {state.sources.map((s) => (
+        {visible.map((s) => (
           <section className="panel source-card" key={s.id}>
             <div className="source-card-top">
               <span className="publisher-logo" style={{ background: s.color }}>
@@ -895,7 +1015,8 @@ function SourcesPage({ state, action, busy }) {
                   : s.name
                       .split(' ')
                       .map((w) => w[0])
-                      .join('')}
+                      .join('')
+                      .slice(0, 3)}
               </span>
               <Toggle
                 label={`Enable ${s.name}`}
@@ -917,7 +1038,9 @@ function SourcesPage({ state, action, busy }) {
             <p>{s.category}</p>
             <span className="source-type">
               <ShieldCheck size={13} />
-              Primary publisher
+              {s.kind === 'github-release'
+                ? 'Official project releases'
+                : 'Publisher & research blog'}
             </span>
             <div className="source-health">
               {s.health ? (
@@ -926,7 +1049,7 @@ function SourcesPage({ state, action, busy }) {
                     {s.health.ok ? 'Feed reached' : 'Feed unavailable'}
                   </Badge>
                   <small>
-                    {s.health.ok ? `${s.health.count} recent articles` : s.health.error}
+                    {s.health.ok ? `${s.health.count} recent candidates` : s.health.error}
                   </small>
                   <small>Checked {formatDate(s.health.checkedAt)}</small>
                 </>
@@ -1161,22 +1284,14 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
             </h2>
             <div className="setting-row">
               <div>
-                <strong>Automatic publishing</strong>
-                <p>Let Quinn publish new source-backed drafts without waiting for your approval.</p>
+                <strong>CEO approval required</strong>
+                <p>
+                  Every post waits at your desk. Scheduled research can prepare drafts, but only you
+                  can approve publishing to connected accounts. Editing resets approval.
+                </p>
               </div>
-              <Toggle
-                label="Automatic publishing"
-                value={form.autoPublish}
-                onChange={(v) => set('autoPublish', v)}
-              />
+              <ShieldCheck size={22} />
             </div>
-            {form.autoPublish && (
-              <div className="auto-notice">
-                New, unchanged drafts that pass the local editor’s source review can be published
-                automatically. This is an AI check, not independent fact verification. Failed
-                reviews and edited drafts come to your chamber.
-              </div>
-            )}
             <div className="platform-selector">
               <strong>Default destinations</strong>
               {['linkedin', 'x'].map((p) => (
