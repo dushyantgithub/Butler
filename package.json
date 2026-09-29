@@ -1,0 +1,36 @@
+{
+  "name": "butler-local-office",
+  "version": "0.1.0",
+  "description": "A local AI office for source-backed news and social publishing",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node --test test/*.test.js",
+    "setup:model": "node scripts/setup-model.js",
+    "launch": "node scripts/launch.js",
+    "format": "prettier --write src server scripts test *.js *.json *.md"
+  },
+  "keywords": [],
+  "type": "module",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "express": "^5.2.1",
+    "fast-xml-parser": "^5.11.2",
+    "lucide-react": "^1.48.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "^0.186.1",
+    "twitter-text": "^3.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "prettier": "^3.9.9",
+    "vite": "^8.3.1"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

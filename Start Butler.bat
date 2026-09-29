@@ -1,0 +1,10 @@
+@echo off
+cd /d "%~dp0"
+where node >nul 2>nul
+if errorlevel 1 (
+  echo Please install Node.js 24 or newer from https://nodejs.org, then open Butler again.
+  pause
+  exit /b 1
+)
+node scripts\launch.js
+if errorlevel 1 pause
