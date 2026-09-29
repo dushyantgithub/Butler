@@ -173,6 +173,17 @@ function App() {
     }
   }
   useEffect(() => {
+    const connection = new URLSearchParams(window.location.search).get('connection');
+    if (/^(x|linkedin)-(authorized|failed)$/.test(connection || '')) {
+      setPage('settings');
+      const label = connection.startsWith('x-') ? 'X' : 'LinkedIn';
+      setToast(
+        connection.endsWith('-authorized')
+          ? `${label} authorized. Publishing depends on platform API access.`
+          : `${label} authorization did not finish. Try connecting again.`,
+      );
+      window.history.replaceState(null, '', '/');
+    }
     refresh();
     refreshModel();
     const a = setInterval(refresh, 3000),
@@ -964,11 +975,39 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
   const [form, setForm] = useState(state.settings),
     [credentials, setCredentials] = useState({
       linkedinToken: '',
+      linkedinClientId: '',
+      linkedinClientSecret: '',
       xToken: '',
+      xClientId: '',
       linkedinAuthor: state.connections.linkedinAuthor,
       linkedinVersion: state.connections.linkedinVersion,
     });
+  const [connectingX, setConnectingX] = useState(false);
+  const [connectingLinkedIn, setConnectingLinkedIn] = useState(false);
+  const [connectionError, setConnectionError] = useState('');
+  async function authorizeX() {
+    setConnectingX(true);
+    setConnectionError('');
+    try {
+      const { url } = await api('/oauth/x/start', 'POST');
+      window.location.assign(url);
+    } catch (error) {
+      setConnectionError(error.message);
+      setConnectingX(false);
+    }
+  }
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  async function authorizeLinkedIn() {
+    setConnectingLinkedIn(true);
+    setConnectionError('');
+    try {
+      const { url } = await api('/oauth/linkedin/start', 'POST');
+      window.location.assign(url);
+    } catch (error) {
+      setConnectionError(error.message);
+      setConnectingLinkedIn(false);
+    }
+  }
   async function save(e) {
     e.preventDefault();
     const { lastScan, ...body } = form;
@@ -983,6 +1022,10 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
     };
     if (credentials.linkedinToken) body.linkedinToken = credentials.linkedinToken.trim();
     if (credentials.xToken) body.xToken = credentials.xToken.trim();
+    if (credentials.xClientId) body.xClientId = credentials.xClientId.trim();
+    if (credentials.linkedinClientId) body.linkedinClientId = credentials.linkedinClientId.trim();
+    if (credentials.linkedinClientSecret)
+      body.linkedinClientSecret = credentials.linkedinClientSecret.trim();
     if (
       await action(
         '/connections',
@@ -991,7 +1034,14 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
         'Credentials saved locally. Access is checked when publishing.',
       )
     )
-      setCredentials({ ...credentials, linkedinToken: '', xToken: '' });
+      setCredentials({
+        ...credentials,
+        linkedinToken: '',
+        linkedinClientId: '',
+        linkedinClientSecret: '',
+        xToken: '',
+        xClientId: '',
+      });
   }
   return (
     <>
@@ -1255,12 +1305,68 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
               <Linkedin size={24} />
               <h3>LinkedIn</h3>
               <Badge status={state.connections.linkedin ? 'completed' : 'idle'}>
-                {state.connections.linkedin ? 'Credentials saved' : 'Not connected'}
+                {state.connections.linkedinAuthorized
+                  ? 'OAuth authorized'
+                  : state.connections.linkedin
+                    ? 'Credentials saved'
+                    : 'Not connected'}
               </Badge>
             </div>
-            <p>Needs posting permission for your member or organization account.</p>
+            <p>
+              Connect your personal profile through your LinkedIn developer app. Reconnect when
+              access expires.
+            </p>
             <label className="field">
-              User access token
+              LinkedIn app Client ID
+              <input
+                autoComplete="off"
+                value={credentials.linkedinClientId}
+                placeholder={
+                  state.connections.linkedinOAuthConfigured
+                    ? 'Saved · enter an ID to replace'
+                    : 'Client ID from the Auth tab'
+                }
+                onChange={(e) =>
+                  setCredentials({ ...credentials, linkedinClientId: e.target.value })
+                }
+              />
+            </label>
+            <label className="field">
+              LinkedIn app Client secret
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={credentials.linkedinClientSecret}
+                placeholder={
+                  state.connections.linkedinOAuthConfigured
+                    ? 'Saved · enter a secret to replace'
+                    : 'Paste directly from the Auth tab'
+                }
+                onChange={(e) =>
+                  setCredentials({ ...credentials, linkedinClientSecret: e.target.value })
+                }
+              />
+            </label>
+            <p className="form-hint">
+              Save app details first. Enable Share on LinkedIn and Sign In with LinkedIn using
+              OpenID Connect, with callback http://127.0.0.1:4310/api/oauth/linkedin/callback.
+            </p>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={authorizeLinkedIn}
+              disabled={
+                busy ||
+                connectingLinkedIn ||
+                !state.connections.linkedinOAuthConfigured ||
+                Boolean(credentials.linkedinClientId || credentials.linkedinClientSecret)
+              }
+            >
+              {connectingLinkedIn ? 'Opening LinkedIn…' : 'Connect with LinkedIn'}
+            </button>
+            {connectionError && <p role="alert">{connectionError}</p>}
+            <label className="field">
+              User access token (manual alternative)
               <input
                 type="password"
                 autoComplete="new-password"
@@ -1327,15 +1433,50 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
               <XIcon />
               <h3>X / Twitter</h3>
               <Badge status={state.connections.x ? 'completed' : 'idle'}>
-                {state.connections.x ? 'Credentials saved' : 'Not connected'}
+                {state.connections.xAuthorized
+                  ? 'OAuth authorized'
+                  : state.connections.x
+                    ? 'Credentials saved'
+                    : 'Not connected'}
               </Badge>
             </div>
             <p>
-              Needs an OAuth 2.0 user token with tweet.write, tweet.read, and users.read scopes. An
-              app-only bearer token cannot publish.
+              Connect with X to authorize posting and save your tokens directly on this computer.
+              Butler renews access when needed, including after time away.
             </p>
             <label className="field">
-              User access token
+              X app Client ID (public identifier)
+              <input
+                autoComplete="off"
+                value={credentials.xClientId}
+                placeholder={
+                  state.connections.xOAuthConfigured
+                    ? 'Saved · enter an ID to replace'
+                    : 'OAuth 2.0 Client ID from your native app'
+                }
+                onChange={(e) => setCredentials({ ...credentials, xClientId: e.target.value })}
+              />
+            </label>
+            <p className="form-hint">
+              Save the Client ID first. Your X app must use the callback
+              http://127.0.0.1:4310/api/oauth/x/callback.
+            </p>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={authorizeX}
+              disabled={
+                busy ||
+                connectingX ||
+                !state.connections.xOAuthConfigured ||
+                Boolean(credentials.xClientId)
+              }
+            >
+              {connectingX ? 'Opening X…' : 'Connect with X'}
+            </button>
+            {connectionError && <p role="alert">{connectionError}</p>}
+            <label className="field">
+              Manual user access token (optional alternative)
               <input
                 type="password"
                 autoComplete="new-password"
@@ -1350,7 +1491,8 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
             </label>
             <p className="form-hint">
               X may charge for API usage. Check credits and spending limits in your developer
-              account. Replace tokens when they expire.
+              account. Manual tokens need replacing when they expire; app-only tokens cannot
+              publish.
             </p>
             <div className="connection-links">
               <a
@@ -1375,8 +1517,9 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
         </div>
         <div className="connections-bottom">
           <p>
-            Tokens are encrypted locally; the key lives on this computer too. They are never sent to
-            the LLM. Saved credentials do not confirm platform access.
+            Tokens are saved in your private, Git-ignored .env file on this computer. They are never
+            sent to the LLM or returned to this page. The file is plaintext; keep it private. Saved
+            credentials do not confirm platform access.
           </p>
           <button className="button primary" disabled={busy}>
             Save connections

@@ -9,6 +9,7 @@ playwright-report/
 *.log
 
 # Local configuration and credentials
+# This also covers temporary files created during atomic credential saves.
 .env*
 !.env.example
 *.pem

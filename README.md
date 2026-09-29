@@ -20,6 +20,28 @@ npm start
 
 Open **http://127.0.0.1:4310**. `npm run launch` builds, starts the server, and opens your browser. Keep its terminal open while the office works. Press Ctrl+C to close the office gracefully. Closing only the browser tab does not stop the server.
 
+### Start and stop from a terminal
+
+**Start an already-installed office (Mac or Windows):** open a terminal in the Butler project folder and run:
+
+```sh
+npm start
+```
+
+On a Mac, you can enter the folder first with `cd "/path/to/Butler"` (replace that example with your actual folder). Then open **http://127.0.0.1:4310/** in your browser. Keep the terminal open. After pulling frontend changes, run `npm run build` before starting; alternatively, `npm run launch` rebuilds and opens the office for you.
+
+**Stop normally:** press **Ctrl+C** in the terminal running Butler. This lets Butler shut down gracefully. Closing the browser tab alone does not stop the app.
+
+**Stop an existing background instance on a Mac:** this stops the server listening on Butler's default port, **4310**:
+
+```sh
+lsof -tiTCP:4310 -sTCP:LISTEN | xargs kill -TERM
+```
+
+If nothing is running on that port, there is nothing to stop. To restart, stop the existing instance and run `npm start` again. Your drafts, settings, and saved connections remain on disk.
+
+### Using the office
+
 Click **New assignment** or speak to Scout to start a news round. Scout carries a folder to Quinn, who works at her computer and brings drafts to your chamber. Click her visit bubble, your character, or **Your desk** to read the brief, key points and posts. Give editorial direction and select **Ask Quinn to rewrite** for a new version, or edit the posts yourself. **Approve & publish** approves the current saved version and sends it to the selected connected accounts.
 
 Drag to rotate the office, scroll to zoom, and click employees or their desks to talk. Idle employees walk to the coffee corner, window or lounge. The top-right **Office journal** holds real task statuses, dates, durations and results; the book opens Scout’s source library. Forms open over the office only when needed. **Gentle motion** reduces character bobbing and gestures.
@@ -82,7 +104,9 @@ Use an **OAuth 2.0 user access token**, with `tweet.write`, `tweet.read`, and `u
 
 X API usage can require paid credits. Set spending limits in your developer account. See [X OAuth setup](https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code), [create posts](https://docs.x.com/x-api/posts/create-post), and [current pricing](https://docs.x.com/x-api/getting-started/pricing).
 
-The first version accepts tokens you obtain yourself. Interactive OAuth login, automatic token refresh, image/video publishing, threads, and scheduled individual posts are not implemented. Replace expired tokens in Settings.
+For X, configure a native/public OAuth 2.0 app with the exact callback `http://127.0.0.1:4310/api/oauth/x/callback`. Save its public Client ID in Office settings, then choose **Connect with X** from that address. Butler uses PKCE and a short-lived browser-bound state, stores tokens only on the server, and requests `offline.access` alongside the publishing scopes so it can refresh access on demand. Disconnect clears both active and refresh tokens locally; revoke the app at X to remove its provider-side authorization. Manual tokens remain supported but must be replaced when they expire.
+
+For LinkedIn, enable **Share on LinkedIn** and **Sign In with LinkedIn using OpenID Connect** in your developer app. Register `http://127.0.0.1:4310/api/oauth/linkedin/callback`, then save the app Client ID and Client secret in Office settings. **Connect with LinkedIn** requests `openid profile w_member_social`, exchanges the authorization code on the local server, and obtains the personal author ID from LinkedIn’s userinfo endpoint. Tokens and the app secret stay in `.env`; reconnect when LinkedIn access expires. Manual tokens and author URNs remain supported for other approved integrations. Image/video publishing, threads, and scheduled individual posts are not implemented.
 
 ### Delivery safety
 
@@ -94,9 +118,13 @@ News rounds can run manually or every 1, 3, 6, 12, or 24 hours. The scheduler li
 
 Task history includes employee, status, start/end timestamps, elapsed duration, and outcome. SQLite persists settings, drafts, receipts, tasks, and events in `data/butler.sqlite`. The UI shows the latest 500 tasks/drafts and 150 timeline events; older records remain in the database. Dates are stored in UTC and displayed in your local timezone. Task durations are elapsed wall time, including waiting for a publisher or LLM.
 
-Credentials are encrypted with AES-256-GCM in `data/credentials.enc`. The key is in `data/vault.key`. File permissions are restricted where supported. **This is not an OS keychain**: someone with access to both files can decrypt the credentials. Do not share `data/`, `.runtime/`, or backups of them. Windows filesystem permissions inherit from your user directory. Use your OS disk encryption/account protections. Disconnecting clears the app's token; revoke a token in the provider account when needed.
+Publishing credentials are stored in the project’s **`.env` file**, as requested. `.env*` and atomic-save temporary files are excluded from Git; `.env.example` contains blank placeholders only. Butler reads only its named credential fields on the server and does not load them into the environment inherited by Ollama. No `.env` variables are exposed by Vite, and credential files are blocked by the local HTTP server. Saved tokens are never returned by the status API, sent to the LLM, or logged.
 
-Back up `data/` only when Butler has stopped, keeping the database, encrypted credentials, and key together. `BUTLER_DATA_DIR` can point to another private local directory. The HTTP server binds only to `127.0.0.1`; it checks hosts, origins, and a custom header on writes. Do not expose it through a public tunnel or reverse proxy. It is a single-user local application, without multi-user authentication.
+**`.env` is plaintext, not encryption.** On macOS/Linux Butler restricts it to the current user (`0600`); Windows access depends on your user-folder ACLs. Keep this file and its backups private. Git ignore rules do not protect against manually sharing a file or force-adding it. Existing encrypted-vault credentials are migrated only when an `.env` key is absent; explicitly empty keys mean disconnected. The old encrypted vault is retained for recovery, so protect `data/` as well. Disconnecting clears the active `.env` token; revoke provider access separately when needed.
+
+Use official user OAuth access tokens in `BUTLER_X_ACCESS_TOKEN` and `BUTLER_LINKEDIN_ACCESS_TOKEN`, plus `BUTLER_LINKEDIN_AUTHOR` and `BUTLER_LINKEDIN_VERSION`. Safari login cookies are not API credentials. Each platform needs a developer application with the required publishing access; a saved value alone does not prove the account is connected.
+
+Back up `data/` only when Butler has stopped, keeping the database and any legacy encrypted credentials together. Back up the private `.env` separately. `BUTLER_DATA_DIR` can point to another private local directory. The HTTP server binds only to `127.0.0.1`; it checks hosts, origins, and a custom header on writes. Do not expose it through a public tunnel or reverse proxy. It is a single-user local application, without multi-user authentication.
 
 ## Development and checks
 

@@ -6,29 +6,67 @@ import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { createStore } from './store.js';
 import { createVault } from './vault.js';
+import { createEnvCredentials } from './env-credentials.js';
 import { LocalModel, MODELS } from './llm.js';
 import { SOURCES } from './sources.js';
 import { Office } from './workflow.js';
-import { validatePosts } from './publisher.js';
+import { validatePosts, publishPost, PublishError } from './publisher.js';
+import { createXOAuth } from './oauth-x.js';
+import { createLinkedInOAuth } from './oauth-linkedin.js';
 import { ensureLocalEngine } from './runtime.js';
 
 export function createApp(options = {}) {
   const store = options.store || createStore(),
     model = options.model || new LocalModel(),
-    vault = options.vault || createVault(store.dir);
-  const office = options.office || new Office(store, model, vault);
+    vault = options.vault || createEnvCredentials(resolve('.env'), createVault(store.dir));
+  const oauth = createXOAuth(vault, options.oauthFetch);
+  const linkedinOAuth = createLinkedInOAuth(vault, options.linkedinOAuthFetch);
+  const office =
+    options.office ||
+    new Office(store, model, vault, {
+      publishPost: async (platform, text, credentials) => {
+        let fresh;
+        try {
+          fresh = await oauth.forPublishing(platform, credentials);
+        } catch {
+          throw new PublishError('X access could not be refreshed. Reconnect in Office settings.');
+        }
+        return publishPost(platform, text, fresh);
+      },
+    });
   const app = express();
   app.disable('x-powered-by');
   app.use((req, res, next) => {
+    let path;
+    try {
+      path = decodeURIComponent(req.path);
+    } catch {
+      return res.sendStatus(400);
+    }
+    if (/(?:^|\/)(?:\.env[^/]*|data|\.runtime|\.git)(?:\/|$)/i.test(path))
+      return res.sendStatus(404);
     const host = req.headers.host || '';
     if (!/^(localhost|127\.0\.0\.1):\d+$/.test(host))
       return res.status(403).json({ error: 'Butler only accepts local requests.' });
+    const oauthCallback =
+      req.method === 'GET' &&
+      ['/api/oauth/x/callback', '/api/oauth/linkedin/callback'].includes(req.path) &&
+      host === '127.0.0.1:4310';
+    // A provider redirect keeps cross-site fetch metadata through the final document navigation.
+    // Only the public application shell may load this way; API reads/writes stay protected.
+    const landingNavigation =
+      req.method === 'GET' &&
+      req.path === '/' &&
+      req.headers['sec-fetch-mode'] === 'navigate' &&
+      req.headers['sec-fetch-dest'] === 'document';
     if (
+      !oauthCallback &&
+      !landingNavigation &&
       req.headers.origin &&
       !/^http:\/\/(localhost|127\.0\.0\.1):(4310|5173)$/.test(req.headers.origin)
     )
       return res.status(403).json({ error: 'Request origin is not allowed.' });
-    if (req.headers['sec-fetch-site'] === 'cross-site')
+    if (!oauthCallback && !landingNavigation && req.headers['sec-fetch-site'] === 'cross-site')
       return res.status(403).json({ error: 'Cross-site requests are blocked.' });
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
@@ -54,6 +92,45 @@ export function createApp(options = {}) {
     if (!d) throw new Error('Draft not found.');
     return d;
   };
+  for (const [platform, handler] of [
+    ['x', oauth],
+    ['linkedin', linkedinOAuth],
+  ]) {
+    app.post(`/api/oauth/${platform}/start`, (req, res) => {
+      idle();
+      if (req.headers.host !== '127.0.0.1:4310')
+        throw new Error('Open http://127.0.0.1:4310 to connect your account.');
+      const { url, session } = handler.begin();
+      res.setHeader(
+        'Set-Cookie',
+        `butler_${platform}_oauth=${session}; HttpOnly; SameSite=Lax; Path=/api/oauth/${platform}; Max-Age=600`,
+      );
+      res.json({ url });
+    });
+    app.get(`/api/oauth/${platform}/callback`, async (req, res) => {
+      const session = (req.headers.cookie || '')
+        .split(';')
+        .map((s) => s.trim())
+        .find((s) => s.startsWith(`butler_${platform}_oauth=`))
+        ?.slice(`butler_${platform}_oauth=`.length);
+      res.setHeader(
+        'Set-Cookie',
+        `butler_${platform}_oauth=; HttpOnly; SameSite=Lax; Path=/api/oauth/${platform}; Max-Age=0`,
+      );
+      try {
+        await handler.complete({ state: req.query.state, code: req.query.code, session });
+        store.event(
+          'boss',
+          `Authorized the ${platform === 'x' ? 'X' : 'LinkedIn'} connection. Tokens saved privately; publishing still depends on platform API access.`,
+          'success',
+        );
+        res.redirect(303, `/?connection=${platform}-authorized`);
+      } catch {
+        // Never reflect provider errors, authorization codes or tokens into the page/logs.
+        res.redirect(303, `/?connection=${platform}-failed`);
+      }
+    });
+  }
   app.get('/api/state', (req, res) =>
     res.json({
       settings: store.settings(),
@@ -124,7 +201,16 @@ export function createApp(options = {}) {
     const c = z
       .object({
         linkedinToken: z.string().max(5000).optional(),
+        linkedinClientId: z
+          .string()
+          .regex(/^[A-Za-z0-9_-]{1,500}$/)
+          .optional(),
+        linkedinClientSecret: z.string().min(1).max(5000).optional(),
         xToken: z.string().max(5000).optional(),
+        xClientId: z
+          .string()
+          .regex(/^[A-Za-z0-9_=-]{1,500}$/)
+          .optional(),
         linkedinAuthor: z
           .string()
           .regex(/^$|^urn:li:(person|organization):[a-zA-Z0-9_-]+$/)
@@ -138,6 +224,24 @@ export function createApp(options = {}) {
       .parse(req.body);
     for (const k of ['linkedinToken', 'xToken'])
       if (c[k] && /[\r\n]/.test(c[k])) throw new Error('Access tokens must be on one line.');
+    if (Object.hasOwn(c, 'xToken') || (c.xClientId && c.xClientId !== vault.read().xClientId)) {
+      oauth.cancelPending();
+      if (!Object.hasOwn(c, 'xToken')) c.xToken = '';
+      Object.assign(c, { xRefreshToken: '', xExpiresAt: '', xScope: '', xConnectedAt: '' });
+    }
+    const previous = vault.read();
+    const linkedinAppChanged = ['linkedinClientId', 'linkedinClientSecret'].some(
+      (k) => Object.hasOwn(c, k) && c[k] !== previous[k],
+    );
+    if (
+      Object.hasOwn(c, 'linkedinToken') ||
+      linkedinAppChanged ||
+      (Object.hasOwn(c, 'linkedinAuthor') && c.linkedinAuthor !== previous.linkedinAuthor)
+    ) {
+      linkedinOAuth.cancelPending();
+      Object.assign(c, { linkedinExpiresAt: '', linkedinConnectedAt: '' });
+      if (linkedinAppChanged && !Object.hasOwn(c, 'linkedinToken')) c.linkedinToken = '';
+    }
     vault.save(c);
     store.event('boss', 'Updated social account credentials.');
     res.json({ ok: true });
@@ -268,6 +372,12 @@ export function createApp(options = {}) {
         .send('Run npm run build first, or use npm run dev for the development office.'),
     );
   app.use((error, req, res, next) => {
+    if (error.type === 'entity.parse.failed')
+      return res.status(400).json({ error: 'Invalid JSON request body.' });
+    if (req.path === '/api/connections' && error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ error: 'Invalid connection details. Check the required fields and format.' });
     res.status(400).json({
       error:
         error instanceof z.ZodError
