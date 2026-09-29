@@ -1716,3 +1716,309 @@
   opacity: 0.35;
   cursor: default;
 }
+
+/* Full-body, shared-renderer employee previews. */
+.employee-figure {
+  position: relative;
+  display: inline-block;
+  width: 138px;
+  height: 158px;
+  flex: none;
+  isolation: isolate;
+  pointer-events: none;
+}
+.figure-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 2;
+  filter: drop-shadow(0 8px 5px #27352a18);
+}
+.figure-canvas.ready {
+  opacity: 1;
+}
+.figure-fallback {
+  position: absolute;
+  inset: 12px 23px 14px;
+  width: calc(100% - 46px);
+  height: calc(100% - 26px);
+  z-index: 2;
+}
+.figure-plinth {
+  position: absolute;
+  left: 19%;
+  right: 19%;
+  height: 20%;
+  bottom: 1%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--figure-color), #fff7e7 68%);
+  box-shadow:
+    0 5px 0 color-mix(in srgb, var(--figure-color), #aab5a1 50%),
+    0 10px 14px #364c2c17;
+  transform: rotateX(45deg);
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.drawer-employee:hover .figure-plinth,
+.employee-card:hover .figure-plinth {
+  box-shadow:
+    0 6px 0 color-mix(in srgb, var(--figure-color), #aab5a1 50%),
+    0 12px 20px #364c2c25;
+  transform: rotateX(45deg) scale(1.09);
+}
+.drawer-drag-handle.drawer-character {
+  position: relative;
+  width: 136px;
+  height: 177px;
+  margin: -6px 0 0 -7px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(155deg, #f4f3e9, #e6eddf);
+  border-radius: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+}
+.drawer-drag-handle.drawer-character:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.drawer-character:focus-visible {
+  outline: 3px solid #729061;
+  outline-offset: 3px;
+}
+.figure-grab-cue {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #76846d;
+}
+.drawer-employee-title {
+  align-items: center;
+  gap: 15px;
+}
+.drawer-designation {
+  padding-right: 3px;
+}
+.drawer-designation h3 {
+  font-family: Georgia, serif;
+  font-size: 21px;
+  line-height: 1.2;
+  margin: 8px 0 10px;
+  color: #314c3e;
+}
+.drawer-designation small {
+  font-size: 9px;
+  letter-spacing: 1px;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.employee-wave-hint {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8d9882;
+  display: block;
+}
+.drawer-employee {
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.drawer-employee:hover {
+  border-color: #aaba93;
+  box-shadow: 0 5px 16px #35452910;
+}
+.employee-card .employee-card-top {
+  align-items: center;
+  min-height: 155px;
+}
+.employee-card .employee-figure {
+  width: 145px;
+  height: 162px;
+}
+.employee-drag-preview {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 170px;
+  height: 206px;
+  z-index: 150;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 15px 15px #233e2c28);
+}
+.employee-drag-preview .employee-figure {
+  width: 170px;
+  height: 184px;
+}
+.employee-drag-preview .figure-plinth {
+  opacity: 0.25;
+  transform: translateY(15px) scale(0.65);
+}
+.drag-figure-lift {
+  animation: employee-pickup 0.2s ease-out;
+}
+.drag-employee-caption {
+  display: block;
+  position: relative;
+  text-align: center;
+  padding: 7px 12px;
+  border-radius: 20px;
+  background: #fffdf3ef;
+  color: #3f6148;
+  font-size: 11px;
+  box-shadow: 0 4px 12px #253f2515;
+  white-space: nowrap;
+}
+.employee-drag-preview.landing .drag-figure-lift {
+  animation: employee-drop 0.7s ease-in both;
+}
+.employee-drag-preview.cancelled {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.employee-drag-preview.landing .drag-employee-caption {
+  animation: employee-caption-out 0.7s ease-in both;
+}
+.drag-landing-ring {
+  position: absolute;
+  bottom: 16px;
+  left: 25px;
+  width: 120px;
+  height: 30px;
+  border: 3px solid #8faa65;
+  border-radius: 50%;
+  opacity: 0;
+}
+.landing .drag-landing-ring {
+  animation: employee-landing-ring 0.65s ease-out both;
+}
+.employee-drop-target {
+  background: transparent;
+  inset: 18px;
+  justify-content: flex-end;
+  padding: 0 380px 30px 18px;
+  border: 2px dashed #9ab27d80;
+  gap: 6px;
+  z-index: 12;
+}
+.employee-drop-target > svg {
+  display: none;
+}
+.employee-drop-target strong {
+  font-size: 13px;
+  background: #f8fbeded;
+  padding: 8px 13px;
+  border-radius: 10px;
+}
+.employee-drop-target span {
+  background: #f8fbeded;
+  font-size: 10px;
+  padding: 5px 9px;
+  border-radius: 8px;
+}
+@keyframes employee-pickup {
+  from {
+    transform: scale(0.8) translateY(16px);
+  }
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes employee-drop {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: translateY(25px) scale(0.92, 0.84);
+  }
+  55% {
+    transform: translateY(7px) scale(0.94, 1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(45px) scale(0.45);
+    opacity: 0;
+  }
+}
+@keyframes employee-caption-out {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes employee-landing-ring {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+.employee-drag-preview.reduced * {
+  animation: none !important;
+  transition: none !important;
+}
+.employee-drag-preview.reduced.landing {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drag-figure-lift,
+  .landing .drag-figure-lift,
+  .landing .drag-employee-caption,
+  .landing .drag-landing-ring {
+    animation: none;
+  }
+  .employee-drag-preview.landing {
+    opacity: 0;
+  }
+  .figure-plinth,
+  .drawer-employee {
+    transition: none;
+  }
+}
+@media (max-width: 700px) {
+  .drawer-drag-handle.drawer-character {
+    width: 118px;
+    height: 166px;
+  }
+  .drawer-character .employee-figure {
+    width: 122px;
+    height: 149px;
+  }
+  .drawer-designation h3 {
+    font-size: 19px;
+  }
+  .employee-drop-target {
+    padding-right: 15px;
+    align-items: flex-start;
+  }
+  .employee-drop-target strong,
+  .employee-drop-target span {
+    max-width: max(100px, calc(100vw - 360px));
+    overflow: hidden;
+  }
+}

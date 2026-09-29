@@ -23,6 +23,7 @@ import {
 import { createOfficeWorld } from './game/world.js';
 import './game/game.css';
 import EmployeeDrawer from './EmployeeDrawer.jsx';
+import { EmployeeDragPreview, EmployeeMotionContext } from './EmployeeFigure.jsx';
 
 function ToyPortrait({ person }) {
   return (
@@ -49,6 +50,7 @@ export default function OfficeGame({
   panel,
   closePanel,
 }) {
+  const dragPreview = useRef();
   const host = useRef(),
     world = useRef(),
     latest = useRef({ navigate, openDraft, state });
@@ -102,6 +104,7 @@ export default function OfficeGame({
         setHelp(false);
         setDrawer(false);
         setDraggedWorker(null);
+        dragPreview.current?.clear();
       }
     };
     window.addEventListener('keydown', listener);
@@ -127,6 +130,42 @@ export default function OfficeGame({
   );
   const deployedCount = state?.workers?.filter((w) => w.deployment === 'deployed').length || 0;
   const lastResearch = state?.tasks.find((task) => task.agent === 'researcher' && task.finished_at);
+  function startEmployeeDrag(id, x, y) {
+    const worker = state?.workers.find((w) => w.id === id);
+    if (!worker || busy) return;
+    setDraggedWorker(id);
+    dragPreview.current?.start(worker, x, y);
+  }
+  function endEmployeeDrag() {
+    setDraggedWorker(null);
+    dragPreview.current?.cancel();
+  }
+  async function deployDroppedEmployee(id, x, y) {
+    const bounds = host.current?.getBoundingClientRect();
+    if (
+      busy ||
+      !bounds ||
+      x < bounds.left ||
+      x > bounds.right ||
+      y < bounds.top ||
+      y > bounds.bottom ||
+      !state?.workers.some((w) => w.id === id && w.deployment !== 'deployed')
+    ) {
+      endEmployeeDrag();
+      return;
+    }
+    dragPreview.current?.move(x, y);
+    dragPreview.current?.release();
+    setDraggedWorker(null);
+    const success = await action(
+      '/workers/' + id,
+      'PATCH',
+      { deployment: 'deployed' },
+      'Employee deployed. Choose Assign work to begin.',
+    );
+    dragPreview.current?.complete(success);
+    if (success) world.current?.welcomeEmployee(id);
+  }
   return (
     <main className="game-shell">
       <header className="game-topbar">
@@ -217,14 +256,8 @@ export default function OfficeGame({
         onDrop={async (event) => {
           event.preventDefault();
           const id = event.dataTransfer.getData('application/x-butler-worker');
-          if (!busy && draggedWorker === id && state?.workers.some((w) => w.id === id))
-            await action(
-              '/workers/' + id,
-              'PATCH',
-              { deployment: 'deployed' },
-              'Employee deployed. Choose Assign work in the employee drawer to begin.',
-            );
-          setDraggedWorker(null);
+          if (draggedWorker === id) await deployDroppedEmployee(id, event.clientX, event.clientY);
+          else endEmployeeDrag();
         }}
       >
         {draggedWorker && (
@@ -355,27 +388,13 @@ export default function OfficeGame({
           close={() => {
             setDrawer(false);
             setDraggedWorker(null);
+            dragPreview.current?.clear();
           }}
-          onDragStart={setDraggedWorker}
-          onDragEnd={() => setDraggedWorker(null)}
-          onDropWorker={async (id, x, y) => {
-            const bounds = host.current?.getBoundingClientRect();
-            if (
-              !busy &&
-              bounds &&
-              x >= bounds.left &&
-              x <= bounds.right &&
-              y >= bounds.top &&
-              y <= bounds.bottom &&
-              state?.workers.some((w) => w.id === id)
-            )
-              await action(
-                '/workers/' + id,
-                'PATCH',
-                { deployment: 'deployed' },
-                'Employee deployed. Choose Assign work to begin.',
-              );
-          }}
+          reducedMotion={motion}
+          onDragStart={startEmployeeDrag}
+          onDragMove={(x, y) => dragPreview.current?.move(x, y)}
+          onDragEnd={endEmployeeDrag}
+          onDropWorker={deployDroppedEmployee}
           manage={() => {
             setDrawer(false);
             navigate('workers');
@@ -386,6 +405,7 @@ export default function OfficeGame({
           }}
         />
       )}
+      <EmployeeDragPreview ref={dragPreview} reducedMotion={motion} />
       <footer className="game-bottom-bar">
         <div className="team-status">
           <div className="team-label">
@@ -634,7 +654,11 @@ export default function OfficeGame({
               <X size={20} />
             </button>
           </div>
-          <div className="game-overlay-content">{children}</div>
+          <div className="game-overlay-content">
+            <EmployeeMotionContext.Provider value={motion}>
+              {children}
+            </EmployeeMotionContext.Provider>
+          </div>
         </div>
       )}
     </main>

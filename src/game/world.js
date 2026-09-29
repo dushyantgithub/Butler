@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { findRoute, PLACES } from './navigation.js';
+import { createEmployeeFigureFactory, poseEmployee } from './employee-figure.js';
 
 export function createOfficeWorld(host, callbacks) {
+  const figureFactory = createEmployeeFigureFactory();
+  const welcomes = new Map();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#e8e3da');
   const renderer = new THREE.WebGLRenderer({
@@ -529,13 +532,14 @@ export function createOfficeWorld(host, callbacks) {
             const object = group();
             const deskTop = box(object, 0, 0.7, -0.65, 1.35, 0.12, 0.65, '#ba9872');
             box(object, 0, 0.96, -0.72, 0.65, 0.46, 0.09, '#405066');
-            box(object, 0, 0.82, 0.18, 0.48, 0.62, 0.34, dept.color);
-            cylinder(object, 0, 1.38, 0.18, 0.23, 0.4, '#f1c956');
-            box(object, 0, 1.62, 0.18, 0.46, 0.12, 0.4, '#6c5340');
-            box(object, -0.15, 0.32, 0.18, 0.19, 0.4, 0.24, '#42516a');
-            box(object, 0.15, 0.32, 0.18, 0.19, 0.4, 0.24, '#42516a');
+            const figure = figureFactory.create(worker),
+              anchor = new THREE.Group();
+            anchor.position.z = 0.18;
+            anchor.scale.setScalar(0.78);
+            anchor.add(figure.root);
+            object.add(anchor);
             selectable(object, `worker:${worker.id}`);
-            person = { object, deskTop };
+            person = { object, deskTop, figure };
             staff.set(worker.id, person);
           }
           person.object.position.set(
@@ -954,6 +958,27 @@ export function createOfficeWorld(host, callbacks) {
       idle(actors[id], dt);
       animateActor(actors[id], t, dt);
     }
+    for (const [id, person] of staff) {
+      if (!person.object.visible) continue;
+      const welcome = welcomes.get(id);
+      poseEmployee(
+        person.figure,
+        welcome ? (ms - welcome) / 800 : t,
+        welcome && ms - welcome < 800 ? 'landing' : welcome ? 'hover' : 'idle',
+        mutedMotion,
+      );
+    }
+    for (const [id, started] of welcomes) {
+      if (ms - started > 2200) {
+        welcomes.delete(id);
+        continue;
+      }
+      if (actors[id]?.object.visible && !mutedMotion) {
+        actors[id].object.position.y =
+          Math.abs(Math.sin(Math.min(1, (ms - started) / 800) * Math.PI)) * 0.4;
+        actors[id].arms[1].rotation.z = 2 + Math.sin(t * 8) * 0.2;
+      }
+    }
     actors.boss.head.rotation.y = mutedMotion ? 0 : Math.sin(t * 0.5) * 0.08;
     controls.update();
     for (const a of Object.values(actors)) {
@@ -987,6 +1012,9 @@ export function createOfficeWorld(host, callbacks) {
   renderer.setAnimationLoop(tick);
   return {
     update,
+    welcomeEmployee(id) {
+      welcomes.set(id, performance.now());
+    },
     resetCamera() {
       camera.position.set(46, 56, 60);
       controls.target.set(0, 0, -12);
@@ -1023,6 +1051,7 @@ export function createOfficeWorld(host, callbacks) {
           for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose();
         }
       });
+      figureFactory.dispose();
       textures.forEach((t) => t.dispose());
       host.replaceChildren();
     },

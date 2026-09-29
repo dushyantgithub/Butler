@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { EmployeeFigure } from './EmployeeFigure.jsx';
 import { GripVertical, Search, Users, X } from 'lucide-react';
 
 export default function EmployeeDrawer({
@@ -8,6 +9,8 @@ export default function EmployeeDrawer({
   close,
   onDragStart,
   onDragEnd,
+  onDragMove,
+  reducedMotion,
   onDropWorker,
   manage,
   assign,
@@ -93,26 +96,21 @@ export default function EmployeeDrawer({
                 e.dataTransfer.setData('application/x-butler-worker', worker.id);
                 e.dataTransfer.setData('text/plain', worker.id);
                 e.dataTransfer.effectAllowed = 'copy';
-                onDragStart(worker.id);
+                const blank = document.createElement('canvas');
+                blank.width = blank.height = 1;
+                e.dataTransfer.setDragImage(blank, 0, 0);
+                onDragStart(worker.id, e.clientX, e.clientY);
+              }}
+              onDrag={(event) => {
+                if (event.clientX || event.clientY) onDragMove(event.clientX, event.clientY);
               }}
               onDragEnd={onDragEnd}
               aria-label={worker.name + ' employee card'}
             >
               <div className="drawer-employee-title">
-                <span className="employee-avatar" style={{ background: dept?.color }}>
-                  {worker.name
-                    .split(' ')
-                    .slice(0, 2)
-                    .map((w) => w[0])
-                    .join('')}
-                </span>
-                <div>
-                  <h3>{worker.name}</h3>
-                  <small>{dept?.name}</small>
-                </div>
                 <button
                   type="button"
-                  className="drawer-drag-handle"
+                  className="drawer-drag-handle drawer-character"
                   aria-label={'Drag ' + worker.name + ' into office'}
                   disabled={busy || deployed}
                   onPointerDown={(event) => {
@@ -134,8 +132,9 @@ export default function EmployeeDrawer({
                       Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 8
                     ) {
                       drag.moved = true;
-                      onDragStart(drag.id);
+                      onDragStart(drag.id, event.clientX, event.clientY);
                     }
+                    if (drag?.moved) onDragMove(event.clientX, event.clientY);
                   }}
                   onPointerUp={(event) => {
                     const drag = pointerDrag.current;
@@ -154,8 +153,17 @@ export default function EmployeeDrawer({
                     onDragEnd();
                   }}
                 >
-                  <GripVertical size={18} aria-hidden="true" />
+                  <EmployeeFigure worker={worker} reducedMotion={reducedMotion} />
+                  <span className="figure-grab-cue">
+                    <GripVertical size={12} />
+                    {deployed ? 'At work' : 'Drag me'}
+                  </span>
                 </button>
+                <div className="drawer-designation">
+                  <small>{dept?.name}</small>
+                  <h3>{worker.name}</h3>
+                  <span className="employee-wave-hint">A little hello on hover</span>
+                </div>
               </div>
               <p>{worker.description}</p>
               <div className="drawer-skill-chips">

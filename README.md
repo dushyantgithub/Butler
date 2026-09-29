@@ -64,6 +64,8 @@ All 114 employees and 501 skills work without external folders. The built-in cap
 
 Optional local imports can be placed in `agents/subagents/<category>/*.md` and `skills/<category>/<skill>/SKILL.md`; restart to load them. Plain frontmatter names/descriptions and Markdown instructions are supported, not arbitrary YAML execution or tool declarations. These folders are ignored by Git. Only import content you are entitled to use; keep restricted libraries private. The app never needs a paid bundle to start.
 
+Employee cards show full 3D brick figures with department colors and individual hair and accessories. Hover or focus a card to get a wave. Dragging lifts the character with dangling legs; a successful placement adds a landing animation. Previews share one renderer and render only visible cards. **Gentle motion** and the system reduced-motion preference keep drawer figures still; a full-body illustration is available when WebGL cannot start.
+
 ## Private projects and campaign work
 
 1. Open **Projects** and create a brief with the company, website, products, audience, voice, research interests, confirmed claims and restrictions. No company or product is seeded in the public code.

@@ -1,3 +1,4 @@
+import { EmployeeFigure } from './EmployeeFigure.jsx';
 import React, { useEffect, useState } from 'react';
 import { Users, BriefcaseBusiness, Search, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -150,18 +151,7 @@ export function WorkforcePage({
         {workers.map((worker) => (
           <article className={`employee-card ${worker.deployment}`} key={worker.id}>
             <div className="employee-card-top">
-              <span
-                className="employee-avatar"
-                style={{
-                  background: state.departments.find((d) => d.id === worker.department)?.color,
-                }}
-              >
-                {worker.name
-                  .split(' ')
-                  .slice(0, 2)
-                  .map((w) => w[0])
-                  .join('')}
-              </span>
+              <EmployeeFigure worker={worker} />
               <span className={`deployment-pill ${worker.deployment}`}>
                 {deploymentNames[worker.deployment]}
               </span>
