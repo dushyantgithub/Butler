@@ -1,4 +1,5 @@
 // Fully intercepted employer forms: this check never sends a real application.
+import { companySchema } from '../server/company.js';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -160,6 +161,15 @@ store.saveWorker(
   context.office.catalog.workers.find((w) => w.id === 'job-hunter'),
   { deployment: 'deployed' },
 );
+// Skip the first-run questionnaire: the job workspace is tested on its own.
+context.office.saveCompany(
+  companySchema.parse({
+    ceo: { name: 'Smoke test' },
+    companyName: 'Fixture Co',
+    description: 'A fixture company used by the job search smoke test.',
+    goals: ['career'],
+  }),
+);
 const server = context.app.listen(4310, '127.0.0.1');
 await new Promise((resolve, reject) => {
   server.once('listening', resolve);
@@ -172,7 +182,8 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
   page.setDefaultTimeout(15000);
   await page.goto(`http://127.0.0.1:${server.address().port}`);
-  await page.getByRole('button', { name: 'Job search & applications', exact: true }).click();
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'My job search', exact: true }).click();
   await page
     .getByLabel('Upload résumé', { exact: true })
     .setInputFiles({ name: 'resume.txt', mimeType: 'text/plain', buffer: resume.data });
@@ -226,7 +237,7 @@ try {
     false,
   );
   await page.locator('.job-portals').screenshot({ path: '/tmp/butler-job-portals.png' });
-  await page.locator('.game-overlay-content').evaluate((el) => (el.scrollTop = 0));
+  await page.locator('.page-sheet-content').evaluate((el) => (el.scrollTop = 0));
   await page.screenshot({ path: resolve('/tmp/butler-jobs-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 700, height: 1000 });
   await page.screenshot({ path: resolve('/tmp/butler-jobs-mobile.png'), fullPage: true });

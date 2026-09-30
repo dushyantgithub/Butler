@@ -34,14 +34,16 @@ export function WorkforcePage({
     (w) =>
       (department === 'all' || w.department === department) &&
       (status === 'all' || w.deployment === status) &&
-      `${w.name} ${w.description}`.toLowerCase().includes(search.toLowerCase()),
+      `${w.persona?.fullName || ''} ${w.title || ''} ${w.name} ${w.description}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
   );
   const employee = state.workers.find((w) => w.id === selected);
   return (
     <>
-      <Heading eyebrow="PEOPLE & CAPABILITIES" title="The right people. At the right time.">
-        Deploy a team for this week, keep specialists on the bench, or undeploy them until needed.
-        Only deployed employees can receive work.
+      <Heading eyebrow="YOUR TEAM" title="115 specialists. You pick who’s in.">
+        Every employee has their own personality and a skill set that fits their role — department
+        heads know every skill in their studio. Deploy people to give them desks and work.
       </Heading>
       <div className="workforce-metrics">
         {['deployed', 'bench', 'undeployed'].map((key) => (
@@ -158,11 +160,17 @@ export function WorkforcePage({
                 {deploymentNames[worker.deployment]}
               </span>
             </div>
-            <h3>{worker.name}</h3>
-            <p>{worker.description}</p>
+            <h3>{worker.persona?.fullName || worker.name}</h3>
+            <p className="employee-title">
+              {worker.title}
+              {worker.head && <em className="head-badge">Head</em>}
+            </p>
+            <p>{worker.persona?.traits?.join(' · ')}</p>
             <small>
-              {worker.skillIds.length} assigned skills ·{' '}
-              {worker.origin === 'local' ? 'Local import' : 'Butler employee'}
+              {worker.skillIds.length} role skills ·{' '}
+              {worker.origin === 'local'
+                ? 'Local import'
+                : state.departments.find((d) => d.id === worker.department)?.name}
             </small>
             <div className="employee-card-actions">
               <select
@@ -174,7 +182,7 @@ export function WorkforcePage({
                     `/workers/${worker.id}`,
                     'PATCH',
                     { deployment: e.target.value },
-                    `${worker.name}: ${deploymentNames[e.target.value]}.`,
+                    `${worker.persona?.firstName || worker.name}: ${deploymentNames[e.target.value]}.`,
                   )
                 }
               >
@@ -223,17 +231,24 @@ function EmployeeDetail({ employee, state, action, busy, close, openJobs }) {
   return (
     <section className="panel employee-detail">
       <div className="panel-heading">
-        <h2>{employee.name}</h2>
+        <h2>
+          {employee.persona?.fullName || employee.name} ·{' '}
+          <span className="muted">{employee.title}</span>
+        </h2>
         <button className="button secondary" onClick={close}>
           Close employee
         </button>
       </div>
-      <p>{employee.description}</p>
+      <p>
+        {employee.persona?.traits?.join(' · ')} — “{employee.persona?.catchphrase}”
+      </p>
+      <p className="form-hint">{employee.description}</p>
       <details>
         <summary>Manage {skillIds.length} assigned skills</summary>
         <p className="form-hint">
-          All installed skills are available. Assign relevant skills here; each assignment uses up
-          to two to keep the local model focused.
+          Skills start from this role’s specialty
+          {employee.head ? ' (department heads know every skill in their studio)' : ''}. Add or
+          remove any installed skill; each assignment focuses on up to two.
         </p>
         <input
           aria-label="Search skills"
@@ -523,7 +538,7 @@ function AssignmentForm({ state, action, busy, workerId, projectId }) {
             brief,
             ...(skillIds.length ? { skillIds } : {}),
           },
-          'Assignment started. Follow progress in the office journal.',
+          'Assignment queued. Follow it under Work.',
         );
       }}
     >
@@ -542,7 +557,7 @@ function AssignmentForm({ state, action, busy, workerId, projectId }) {
               <option value="">Choose a deployed employee</option>
               {deployed.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.name}
+                  {w.persona?.fullName || w.name} · {w.title}
                 </option>
               ))}
             </select>
@@ -608,10 +623,7 @@ function AssignmentForm({ state, action, busy, workerId, projectId }) {
       <button
         className="button primary"
         disabled={
-          busy ||
-          !worker ||
-          employee?.deployment !== 'deployed' ||
-          (kind === 'campaign' && !project)
+          !worker || employee?.deployment !== 'deployed' || (kind === 'campaign' && !project)
         }
       >
         <Sparkles size={16} /> Start assignment

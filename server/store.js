@@ -15,6 +15,10 @@ export const defaults = {
   platforms: ['linkedin', 'x'],
   enabledSources: SOURCES.map((source) => source.id),
   lastScan: null,
+  engine: 'local',
+  cloudProvider: 'anthropic',
+  cloudModel: '',
+  cloudConcurrency: 3,
 };
 export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')) {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -30,7 +34,11 @@ export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')
     CREATE TABLE IF NOT EXISTS drafts (id TEXT PRIMARY KEY, source_url TEXT UNIQUE, status TEXT, created_at TEXT, updated_at TEXT, body TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, time TEXT, agent TEXT, message TEXT, kind TEXT);
     CREATE TABLE IF NOT EXISTS scenes (id INTEGER PRIMARY KEY AUTOINCREMENT, time TEXT, action TEXT, payload TEXT);
-    CREATE TABLE IF NOT EXISTS deliveries (draft_id TEXT, platform TEXT, status TEXT, remote_id TEXT, error TEXT, updated_at TEXT, PRIMARY KEY(draft_id, platform));`);
+    CREATE TABLE IF NOT EXISTS deliveries (draft_id TEXT, platform TEXT, status TEXT, remote_id TEXT, error TEXT, updated_at TEXT, PRIMARY KEY(draft_id, platform));
+    CREATE TABLE IF NOT EXISTS company (id INTEGER PRIMARY KEY CHECK(id=1), body TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS work_jobs (id TEXT PRIMARY KEY, worker_id TEXT, status TEXT, created_at TEXT, updated_at TEXT, body TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS deliverables (id TEXT PRIMARY KEY, worker_id TEXT, created_at TEXT, body TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS approvals (id TEXT PRIMARY KEY, worker_id TEXT, status TEXT, created_at TEXT, decided_at TEXT, body TEXT NOT NULL);`);
   const now = () => new Date().toISOString();
   const api = {
     db,
@@ -40,22 +48,169 @@ export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')
       ...JSON.parse(db.prepare('SELECT value FROM settings WHERE id=1').get()?.value || '{}'),
       autoPublish: false,
     }),
+    // Skill lists follow the role catalog unless the CEO customised them. Older
+    // offices stored a department-wide list at deployment time; those are ignored.
     workerConfig(worker) {
+      const stored = JSON.parse(
+        db.prepare('SELECT body FROM worker_config WHERE id=?').get(worker.id)?.body || '{}',
+      );
+      const { skillIds, skillsCustomized, ...rest } = stored;
       return {
         deployment: worker.defaultDeployment,
-        skillIds: worker.skillIds,
-        ...JSON.parse(
-          db.prepare('SELECT body FROM worker_config WHERE id=?').get(worker.id)?.body || '{}',
-        ),
+        ...rest,
+        skillIds: skillsCustomized && Array.isArray(skillIds) ? skillIds : worker.skillIds,
+        skillsCustomized: Boolean(skillsCustomized),
       };
     },
     saveWorker(worker, patch) {
-      const value = { ...api.workerConfig(worker), ...patch };
+      const stored = JSON.parse(
+        db.prepare('SELECT body FROM worker_config WHERE id=?').get(worker.id)?.body || '{}',
+      );
+      const { skillIds, ...rest } = patch;
+      const value = { ...stored, ...rest };
+      if (!stored.skillsCustomized) delete value.skillIds;
+      if (skillIds) Object.assign(value, { skillIds, skillsCustomized: true });
       db.prepare('INSERT OR REPLACE INTO worker_config VALUES (?,?)').run(
         worker.id,
         JSON.stringify(value),
       );
+      return api.workerConfig(worker);
+    },
+    company: () =>
+      JSON.parse(db.prepare('SELECT body FROM company WHERE id=1').get()?.body || 'null'),
+    saveCompany(body) {
+      const value = { ...body, updatedAt: now(), onboardedAt: body.onboardedAt || now() };
+      db.prepare('INSERT OR REPLACE INTO company VALUES (1, ?)').run(JSON.stringify(value));
       return value;
+    },
+    addJob(body) {
+      const id = randomUUID(),
+        at = now();
+      db.prepare('INSERT INTO work_jobs VALUES(?,?,?,?,?,?)').run(
+        id,
+        body.workerId,
+        'queued',
+        at,
+        at,
+        JSON.stringify(body),
+      );
+      return api.job(id);
+    },
+    job(id) {
+      const row = db.prepare('SELECT * FROM work_jobs WHERE id=?').get(id);
+      return row
+        ? {
+            ...JSON.parse(row.body),
+            id: row.id,
+            workerId: row.worker_id,
+            status: row.status,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          }
+        : null;
+    },
+    updateJob(id, patch = {}, status) {
+      const job = api.job(id);
+      if (!job) return null;
+      const { id: _, workerId, status: __, createdAt, updatedAt, ...body } = job;
+      db.prepare('UPDATE work_jobs SET body=?,status=?,updated_at=? WHERE id=?').run(
+        JSON.stringify({ ...body, ...patch }),
+        status || job.status,
+        now(),
+        id,
+      );
+      return api.job(id);
+    },
+    activeJobs: () =>
+      db
+        .prepare(
+          "SELECT id FROM work_jobs WHERE status IN ('queued','running') ORDER BY created_at, rowid",
+        )
+        .all()
+        .map((r) => api.job(r.id)),
+    recentJobs: (limit = 60) =>
+      db
+        .prepare(
+          "SELECT id FROM work_jobs WHERE status NOT IN ('queued','running') ORDER BY updated_at DESC LIMIT ?",
+        )
+        .all(limit)
+        .map((r) => api.job(r.id)),
+    addDeliverable(body) {
+      const id = randomUUID();
+      db.prepare('INSERT INTO deliverables VALUES(?,?,?,?)').run(
+        id,
+        body.workerId,
+        now(),
+        JSON.stringify(body),
+      );
+      return api.deliverable(id);
+    },
+    deliverable(id) {
+      const row = db.prepare('SELECT * FROM deliverables WHERE id=?').get(id);
+      return row
+        ? {
+            ...JSON.parse(row.body),
+            id: row.id,
+            workerId: row.worker_id,
+            createdAt: row.created_at,
+          }
+        : null;
+    },
+    deliverables: (limit = 200) =>
+      db
+        .prepare('SELECT id FROM deliverables ORDER BY created_at DESC, rowid DESC LIMIT ?')
+        .all(limit)
+        .map((r) => {
+          const { content, ...rest } = api.deliverable(r.id);
+          return {
+            ...rest,
+            preview: String(content || '').slice(0, 280),
+            size: String(content || '').length,
+          };
+        }),
+    addApproval(body) {
+      const id = randomUUID();
+      db.prepare('INSERT INTO approvals VALUES(?,?,?,?,?,?)').run(
+        id,
+        body.workerId,
+        'pending',
+        now(),
+        null,
+        JSON.stringify(body),
+      );
+      return api.approval(id);
+    },
+    approval(id) {
+      const row = db.prepare('SELECT * FROM approvals WHERE id=?').get(id);
+      return row
+        ? {
+            ...JSON.parse(row.body),
+            id: row.id,
+            workerId: row.worker_id,
+            status: row.status,
+            createdAt: row.created_at,
+            decidedAt: row.decided_at,
+          }
+        : null;
+    },
+    approvals: (limit = 200) =>
+      db
+        .prepare(
+          "SELECT id FROM approvals ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC LIMIT ?",
+        )
+        .all(limit)
+        .map((r) => api.approval(r.id)),
+    decideApproval(id, status, patch = {}) {
+      const approval = api.approval(id);
+      if (!approval) throw new Error('Approval not found.');
+      const { id: _, workerId, status: __, createdAt, decidedAt, ...body } = approval;
+      db.prepare('UPDATE approvals SET status=?,decided_at=?,body=? WHERE id=?').run(
+        status,
+        now(),
+        JSON.stringify({ ...body, ...patch }),
+        id,
+      );
+      return api.approval(id);
     },
     projects: () =>
       db
@@ -188,6 +343,8 @@ export function createStore(dir = process.env.BUTLER_DATA_DIR || resolve('data')
         "UPDATE deliveries SET status='uncertain',error='Office stopped during publishing. Check the social account before resolving this delivery.' WHERE status='sending'",
       ).run();
       db.prepare("UPDATE drafts SET status='attention' WHERE status='publishing'").run();
+      // Specialist work has no external side effects, so interrupted jobs simply rejoin the queue.
+      db.prepare("UPDATE work_jobs SET status='queued' WHERE status='running'").run();
     },
     close: () => db.close(),
   };

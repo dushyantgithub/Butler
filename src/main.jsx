@@ -36,12 +36,21 @@ import {
 } from 'lucide-react';
 import twitterText from 'twitter-text';
 import './styles.css';
+import './game/game.css';
+import './ios.css';
 import OfficeGame from './OfficeGame.jsx';
 import JobSearchPage from './JobSearchPage.jsx';
 import CampaignGraphic from './CampaignGraphic.jsx';
 import { WorkforcePage, ProjectsPage } from './OfficeManagement.jsx';
+import Onboarding, { CompanyPage, EngineChooser, saveEngine } from './Onboarding.jsx';
+import { WorkPage, InboxPage } from './WorkPages.jsx';
 
 const names = { researcher: 'Scout', manager: 'Quinn', boss: 'You' };
+const personOf = (state, id) =>
+  state?.workers?.find((w) => w.id === id)?.persona?.fullName ||
+  state?.workers?.find((w) => w.id === id)?.name ||
+  names[id] ||
+  id;
 const nav = [
   { id: 'office', label: 'My office', Icon: LayoutGrid },
   { id: 'drafts', label: 'Drafts & publishing', Icon: FileText },
@@ -217,23 +226,28 @@ function App() {
     setSelectedId(id);
     setPage('drafts');
   }
-  const drafts = state?.drafts || [],
-    review = drafts.filter((d) => ['review', 'attention', 'approved'].includes(d.status));
   const busy = state?.busy || pending;
+  const notify = (message) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 5000);
+  };
   const navigate = (id) => {
-    setPage(id.endsWith(':job-hunter') ? 'jobs' : id);
+    setPage(id.endsWith(':job-hunter') ? 'jobs' : id.replace(/^workers/, 'team'));
     if (id === 'drafts') setSelectedId(null);
   };
+  const [pageId, pageArg, pageArg2] = page.split(':');
   return (
     <>
       <OfficeGame
         state={state}
         model={model}
-        busy={busy}
+        pending={pending}
         error={error}
         action={action}
         navigate={navigate}
         openDraft={openDraft}
+        notify={notify}
         panel={page === 'office' ? null : page}
         closePanel={() => setPage('office')}
       >
@@ -247,16 +261,31 @@ function App() {
             returnToOffice={() => setPage('office')}
           />
         )}
-        {state && page.startsWith('workers') && (
+        {state && pageId === 'team' && (
           <WorkforcePage
             key={page}
             navigate={navigate}
-            initialDepartment={page.split(':')[1] || 'all'}
-            initialEmployee={page.split(':')[2] || null}
+            initialDepartment={pageArg || 'all'}
+            initialEmployee={pageArg2 || null}
             state={state}
             action={action}
-            busy={busy}
+            busy={pending}
           />
+        )}
+        {state && pageId === 'work' && (
+          <WorkPage
+            key={page}
+            state={state}
+            action={action}
+            openDraft={openDraft}
+            initial={pageArg ? { tab: pageArg, deliverable: pageArg2 || null } : null}
+          />
+        )}
+        {state && pageId === 'inbox' && (
+          <InboxPage state={state} action={action} openDraft={openDraft} />
+        )}
+        {state && pageId === 'company' && state.company && (
+          <CompanyPage state={state} action={action} refresh={refresh} notify={notify} />
         )}
         {state && page === 'projects' && <ProjectsPage state={state} action={action} busy={busy} />}
         {state && page === 'jobs' && <JobSearchPage api={api} state={state} action={action} />}
@@ -268,10 +297,23 @@ function App() {
             model={model}
             action={action}
             refreshModel={refreshModel}
+            refresh={refresh}
             busy={busy}
           />
         )}
       </OfficeGame>
+      {state && !state.company && (
+        <Onboarding
+          state={state}
+          onDone={async (result) => {
+            await refresh();
+            setPage('office');
+            notify(
+              `Welcome to the office! ${result.deployed} employees deployed${result.queued ? `, ${result.queued} first tasks queued` : ''}.${result.notes?.length ? ' ' + result.notes[0] : ''}`,
+            );
+          }}
+        />
+      )}
       {toast && (
         <div className="toast" role="status">
           <span>{toast}</span>
@@ -310,8 +352,27 @@ function DraftsPage({ state, selectedId, setSelectedId, action, busy, returnToOf
       <PageHeader
         eyebrow="THE EDITORIAL DESK"
         title="Good stories, ready for your voice."
-        subtitle="Review the evidence, make it yours, and give Quinn the go-ahead."
-      />
+        subtitle="Scout reads trusted AI news; Quinn writes the posts. Review the evidence, make it yours, and give the go-ahead."
+      >
+        {state.busy && state.agents?.researcher?.status === 'working' ? (
+          <button
+            className="button secondary"
+            onClick={() => action('/stop', 'POST', {}, 'Stopping at the next safe checkpoint.')}
+          >
+            Stop news round
+          </button>
+        ) : (
+          <button
+            className="button primary"
+            disabled={busy}
+            onClick={() =>
+              action('/scan', 'POST', {}, 'Scout is reading the latest AI announcements.')
+            }
+          >
+            <Radio size={15} /> Run a news round
+          </button>
+        )}
+      </PageHeader>
       {selected ? (
         <DraftEditor
           key={selected.id}
@@ -825,7 +886,7 @@ function ResolveDelivery({ delivery, draftId, action, busy }) {
     </div>
   );
 }
-function EventList({ events }) {
+function EventList({ events, state }) {
   return (
     <div className="event-list">
       {events.map((e) => (
@@ -841,7 +902,7 @@ function EventList({ events }) {
           </span>
           <div>
             <p>
-              <strong>{names[e.agent] || e.agent}</strong> {e.message}
+              <strong>{e.agent === 'boss' ? 'You' : personOf(state, e.agent)}</strong> {e.message}
             </p>
             <time>{formatDate(e.time)}</time>
           </div>
@@ -896,11 +957,7 @@ function ActivityPage({ state }) {
                       <strong>{t.title}</strong>
                       <small>{t.detail}</small>
                     </td>
-                    <td>
-                      {state.workers?.find((w) => w.id === t.agent)?.name ||
-                        names[t.agent] ||
-                        t.agent}
-                    </td>
+                    <td>{personOf(state, t.agent)}</td>
                     <td>
                       <Badge status={t.status} />
                     </td>
@@ -931,7 +988,7 @@ function ActivityPage({ state }) {
           <span className="muted">Most recent first</span>
         </div>
         {state.events.length ? (
-          <EventList events={state.events} />
+          <EventList events={state.events} state={state} />
         ) : (
           <Empty
             Icon={Coffee}
@@ -1176,7 +1233,46 @@ function DesktopEngine({ modelName, refreshModel }) {
     </>
   );
 }
-function SettingsPage({ state, model, action, refreshModel, busy }) {
+function EngineSettings({ state, refresh }) {
+  const [value, setValue] = useState({
+    engine: state.settings.engine || 'local',
+    cloudProvider: state.settings.cloudProvider || 'anthropic',
+    cloudModel: state.settings.cloudModel || '',
+    cloudConcurrency: state.settings.cloudConcurrency || 3,
+    key: '',
+  });
+  const [message, setMessage] = useState('');
+  return (
+    <section className="panel runtime-panel engine-panel">
+      <h2>AI engine</h2>
+      <p>
+        {state.engine?.engine === 'cloud'
+          ? `Running on ${state.engine.providerName} · ${state.engine.model} · ${state.engine.parallel} at once.`
+          : `Running locally · ${state.settings.model} · one task at a time.`}
+        {state.engine?.fallback ? ` ${state.engine.fallback}` : ''}
+      </p>
+      <EngineChooser state={state} value={value} setValue={setValue} />
+      <button
+        type="button"
+        className="button primary full-width"
+        onClick={async () => {
+          try {
+            const warning = await saveEngine(value, state);
+            setValue({ ...value, key: '' });
+            setMessage(warning || 'AI engine saved.');
+            await refresh();
+          } catch (e) {
+            setMessage(e.message);
+          }
+        }}
+      >
+        Save AI engine
+      </button>
+      {message && <p className="form-hint">{message}</p>}
+    </section>
+  );
+}
+function SettingsPage({ state, model, action, refreshModel, refresh, busy }) {
   const [form, setForm] = useState(state.settings),
     [credentials, setCredentials] = useState({
       linkedinToken: '',
@@ -1337,10 +1433,10 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
             </h2>
             <div className="setting-row">
               <div>
-                <strong>Use the local language model</strong>
+                <strong>Use the AI engine</strong>
                 <p>
-                  Writes detailed briefs and platform-specific posts, then checks the claims against
-                  the source.
+                  Lets employees write deliverables, briefs and platform-specific posts. Turn off
+                  for a zero-AI office (news rounds fall back to source excerpts).
                 </p>
               </div>
               <Toggle
@@ -1414,6 +1510,7 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
           </button>
         </form>
         <aside className="settings-aside">
+          <EngineSettings state={state} refresh={refresh} />
           <section className="panel runtime-panel">
             <div className="runtime-heading">
               <span className="icon-circle">

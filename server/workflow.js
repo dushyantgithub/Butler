@@ -1,7 +1,8 @@
 import { SOURCES, fetchText, parseFeed, readArticle, normalize, trustedUrl } from './sources.js';
 import { randomUUID } from 'node:crypto';
 import { loadWorkerCatalog, workerContext } from './workers.js';
-import { readProjectSource } from './projects.js';
+import { readProjectSource, projectSchema } from './projects.js';
+import { projectFromCompany, COMPANY_PROJECT_ID } from './company.js';
 import { composePosts, validatePosts, publishPost } from './publisher.js';
 
 export class Office {
@@ -17,6 +18,8 @@ export class Office {
     this.stopRequested = false;
     this.sourceHealth = {};
     this.releaseCache = new Map();
+    this.running = new Map();
+    this.disposed = false;
     this.agents = {
       researcher: { status: 'idle', current: 'Ready for your next assignment' },
       manager: { status: 'idle', current: 'Waiting for the researcher’s handoff' },
@@ -46,6 +49,8 @@ export class Office {
         store.event('manager', `Withheld “${draft.title}”: ${note}`, 'warning');
       }
     }
+    // Resume work that was waiting when the office last closed.
+    if (store.activeJobs().length) setTimeout(() => this.pump(), 50);
   }
   setAgent(
     id,
@@ -496,43 +501,207 @@ export class Office {
       this.setAgent('manager', 'idle', 'Your draft is on the boss’s desk');
     }
   }
-  async runAssignment({ workerId, projectId, brief, kind = 'report', skillIds }) {
+  // ---------------------------------------------------------------------------
+  // Specialist work queue. Many employees can hold assignments; the engine decides
+  // how many run at once (one for the local model, several for a cloud key).
+  // ---------------------------------------------------------------------------
+  validateAssignment({ workerId, projectId, kind = 'report', skillIds, brief = '' }) {
     if (workerId === 'job-hunter')
       throw new Error(
         'Open Job search to upload your résumé, save preferences, and start this worker.',
       );
-    if (this.busy) throw new Error('Wait for the current assignment to finish.');
-    const context = workerContext(this.catalog, this.store, workerId, skillIds, brief);
+    workerContext(this.catalog, this.store, workerId, skillIds, brief);
     const project = projectId ? this.store.project(projectId) : null;
     if (projectId && !project) throw new Error('Project not found.');
     if (kind === 'campaign' && !project)
       throw new Error('Choose a project before creating a campaign.');
     if (!this.store.settings().useModel)
-      throw new Error('Enable the local model to assign specialist work.');
-    this.busy = true;
-    this.stopRequested = false;
+      throw new Error('Enable the AI engine in Office settings to assign specialist work.');
+    return project;
+  }
+  enqueue(assignment, origin = 'boss') {
+    this.validateAssignment(assignment);
+    const active = this.store.activeJobs();
+    if (active.filter((j) => j.workerId === assignment.workerId).length >= 6)
+      throw new Error('This employee already has six assignments waiting. Let them finish first.');
+    if (active.length >= 80)
+      throw new Error('The office queue is full. Let some work finish first.');
+    const worker = this.catalog.workers.find((w) => w.id === assignment.workerId);
+    const title = (assignment.title || assignment.brief).replace(/\s+/g, ' ').slice(0, 140);
+    const job = this.store.addJob({
+      workerId: assignment.workerId,
+      projectId: assignment.projectId || null,
+      brief: assignment.brief,
+      kind: assignment.kind || 'report',
+      skillIds: assignment.skillIds || null,
+      title,
+      origin,
+      missionId: assignment.missionId || null,
+      followUpOf: assignment.followUpOf || null,
+    });
+    this.store.event(
+      assignment.workerId,
+      `${worker?.persona?.firstName || worker?.name} picked up “${title}”.`,
+    );
+    this.store.scene('queued', { workerId: assignment.workerId, jobId: job.id, title });
+    queueMicrotask(() => this.pump());
+    return job;
+  }
+  capacity() {
+    return Math.max(1, this.model.capacity?.() ?? 1);
+  }
+  pump() {
+    if (this.disposed) return;
+    const runningWorkers = new Set([...this.running.values()].map((c) => c.workerId));
+    for (const job of this.store.activeJobs()) {
+      if (this.running.size >= this.capacity()) break;
+      if (job.status !== 'queued' || this.running.has(job.id) || runningWorkers.has(job.workerId))
+        continue;
+      const worker = this.catalog.workers.find((w) => w.id === job.workerId);
+      if (!worker || this.store.workerConfig(worker).deployment !== 'deployed') {
+        this.store.updateJob(job.id, { error: 'Employee is no longer deployed.' }, 'cancelled');
+        continue;
+      }
+      runningWorkers.add(job.workerId);
+      const control = { cancelled: false, workerId: job.workerId, jobId: job.id };
+      this.running.set(job.id, control);
+      this.store.updateJob(job.id, { startedAt: new Date().toISOString() }, 'running');
+      void this.runAssignment({ ...job, workerId: job.workerId }, control)
+        .catch(() => {})
+        .finally(() => {
+          this.running.delete(job.id);
+          this.pump();
+        });
+    }
+  }
+  cancelJob(id) {
+    const job = this.store.job(id);
+    if (!job || !['queued', 'running'].includes(job.status))
+      throw new Error('Only waiting or running work can be cancelled.');
+    const control = this.running.get(id);
+    if (control) control.cancelled = true;
+    else this.store.updateJob(id, { error: 'Cancelled by the boss.' }, 'cancelled');
+    this.store.event('boss', `Cancelled “${job.title}”.`);
+  }
+  workerHasWork(workerId) {
+    return this.store.activeJobs().some((j) => j.workerId === workerId);
+  }
+  // Real state for the office floor and thought bubbles.
+  activity() {
+    const out = {};
+    const active = this.store.activeJobs();
+    const pendingApprovals = this.store.approvals(300).filter((a) => a.status === 'pending');
+    const openDrafts = this.store
+      .drafts()
+      .filter((d) => ['review', 'attention', 'approved'].includes(d.status));
+    const lastDone = new Map();
+    for (const job of this.store.recentJobs(120))
+      if (job.status === 'done' && !lastDone.has(job.workerId))
+        lastDone.set(job.workerId, job.title);
+    for (const worker of this.catalog.workers) {
+      const id = worker.id;
+      const running = active.find((j) => j.workerId === id && j.status === 'running');
+      const queued = active.filter((j) => j.workerId === id && j.status === 'queued');
+      const approval = pendingApprovals.find((a) => a.workerId === id);
+      const draft = openDrafts.find(
+        (d) => (d.workerId || (d.kind === 'campaign' ? null : 'manager')) === id,
+      );
+      const news = this.agents[id];
+      let entry;
+      if (running)
+        entry = {
+          status: 'working',
+          phase: this.agents[id]?.phase || 'writing',
+          current: this.agents[id]?.current || 'Working on an assignment',
+          task: running.title,
+          jobId: running.id,
+          since: running.startedAt,
+        };
+      else if (news?.status === 'working') entry = { ...news, task: news.current };
+      else if (queued.length)
+        entry = {
+          status: 'queued',
+          current: `Waiting for the AI engine · ${queued.length} in line`,
+          task: queued[0].title,
+          jobId: queued[0].id,
+        };
+      else if (approval || draft)
+        entry = {
+          status: 'approval',
+          current: 'Waiting for your approval',
+          task: approval?.title || draft?.title,
+          approvalId: approval?.id || null,
+          draftId: approval ? null : draft?.id,
+        };
+      else entry = { status: 'idle', current: news?.current || 'Ready for a brief' };
+      entry.queued = queued.length;
+      entry.lastDone = lastDone.get(id) || null;
+      out[id] = entry;
+    }
+    return out;
+  }
+  async runAssignment(assignment, control) {
+    const { workerId, projectId, brief, kind = 'report', skillIds } = assignment;
+    if (!control) {
+      // Direct calls (tests, scripts) are still cancellable through stop().
+      control = { cancelled: false, workerId, jobId: `direct-${randomUUID()}` };
+      this.validateAssignment(assignment);
+      this.running.set(control.jobId, control);
+    }
+    const cancelled = () => control.cancelled;
+    const jobId = assignment.id && this.store.job(assignment.id) ? assignment.id : null;
+    let context, project;
+    try {
+      project = this.validateAssignment(assignment);
+      context = workerContext(this.catalog, this.store, workerId, skillIds || undefined, brief);
+    } catch (e) {
+      if (jobId) this.store.updateJob(jobId, { error: e.message }, 'failed');
+      this.store.event(workerId, e.message, 'warning');
+      if (control.jobId.startsWith('direct-')) this.running.delete(control.jobId);
+      throw e;
+    }
+    const worker = this.catalog.workers.find((w) => w.id === workerId);
+    const company = this.store.company();
     const task = this.store.startTask(
       workerId,
-      `${kind === 'campaign' ? 'Campaign' : 'Assignment'}: ${brief.slice(0, 120)}`,
+      `${kind === 'campaign' ? 'Campaign' : 'Assignment'}: ${(assignment.title || brief).slice(0, 120)}`,
     );
+    if (jobId) this.store.updateJob(jobId, { taskId: task });
+    this.store.scene('started', { workerId, jobId, title: assignment.title || brief.slice(0, 80) });
     this.setAgent(workerId, 'working', 'Reviewing the brief and project sources', 'researching');
+    const engine = this.model.describe?.() || {
+      engine: 'local',
+      model: this.store.settings().model,
+    };
     try {
       const sources = [];
       const sourceErrors = [];
       for (const url of [
         ...new Set([project?.website, ...(project?.sources || [])].filter(Boolean)),
       ].slice(0, 4)) {
-        if (this.stopRequested) break;
+        if (cancelled()) break;
         try {
           sources.push(await this.readProjectSource(url));
         } catch (e) {
           sourceErrors.push({ url, error: e.message });
         }
       }
-      if (this.stopRequested) throw new Error('Assignment stopped before writing.');
+      if (cancelled()) throw new Error('Assignment stopped before writing.');
       // Keep each prompt within the local model's context budget.
       const input = {
         assignment: brief,
+        company: company
+          ? {
+              name: company.companyName,
+              ceo: company.ceo?.name,
+              approvalsRequiredFor: [
+                'publishing',
+                company.approvals?.outreach !== false && 'sending or outreach',
+                company.approvals?.spending !== false && 'spending',
+                company.approvals?.verifyFacts !== false && 'unverified claims',
+              ].filter(Boolean),
+            }
+          : undefined,
         project: project
           ? Object.fromEntries(
               Object.entries(project)
@@ -551,12 +720,13 @@ export class Office {
         'working',
         kind === 'campaign'
           ? 'Writing campaign copy and visual direction'
-          : 'Preparing the specialist report',
+          : 'Preparing the specialist deliverable',
         'writing',
       );
+      const skillsUsed = context.skills.map((s) => s.name);
       if (kind === 'campaign') {
         const result = await this.model.campaign(input, context, this.store.settings().model);
-        if (this.stopRequested) throw new Error('Assignment stopped. No draft was saved.');
+        if (cancelled()) throw new Error('Assignment stopped. No draft was saved.');
         const posts = { linkedin: result.linkedin, x: result.x };
         validatePosts(posts, ['linkedin', 'x']);
         const draft = this.store.addDraft({
@@ -582,9 +752,9 @@ export class Office {
           platforms: [...this.store.settings().platforms],
           publishedAt: new Date().toISOString(),
           checkedAt: new Date().toISOString(),
-          method: 'local-model',
+          method: engine.engine === 'cloud' ? 'cloud-model' : 'local-model',
           approvedAt: null,
-          usedSkills: context.skills.map((s) => s.name),
+          usedSkills: skillsUsed,
           evidence: { primarySource: false, quoteMatched: false },
           editorial: {
             status: 'needs-review',
@@ -596,33 +766,190 @@ export class Office {
           },
           caveat: 'Uses owner-provided facts and the listed sources. Claims need CEO review.',
         });
+        const deliverable = this.store.addDeliverable({
+          workerId,
+          jobId,
+          kind: 'campaign',
+          title: result.title,
+          summary: result.summary,
+          content: `## LinkedIn\n\n${posts.linkedin}\n\n## X\n\n${posts.x}\n\n## Visual direction\n\n${result.visualConcept}\n\n## Key points\n\n${(result.keyPoints || []).map((p) => `- ${p}`).join('\n')}`,
+          nextSteps: ['Review the campaign on your desk, then approve & publish.'],
+          draftId: draft.id,
+          projectId,
+          projectName: project.name,
+          skills: skillsUsed,
+          engine: engine.engine,
+          brief,
+        });
+        if (jobId) this.store.updateJob(jobId, { deliverableId: deliverable.id }, 'done');
         this.store.finishTask(
           task,
           'completed',
-          `Campaign saved to the CEO desk: ${draft.title}. Skills used: ${context.skills.map((s) => s.name).join(', ') || 'worker specialty'}.`,
+          `Campaign saved to the CEO desk: ${draft.title}. Skills used: ${skillsUsed.join(', ') || 'worker specialty'}.`,
         );
-        this.store.scene('approval', { draftId: draft.id, title: draft.title });
+        this.store.scene('approval', { draftId: draft.id, title: draft.title, workerId });
       } else {
         const result = await this.model.work(input, context, this.store.settings().model);
-        if (this.stopRequested) throw new Error('Assignment stopped. No report was saved.');
+        if (cancelled()) throw new Error('Assignment stopped. No report was saved.');
+        const title = (result.title || assignment.title || brief)
+          .replace(/\s+/g, ' ')
+          .slice(0, 160);
+        const deliverable = this.store.addDeliverable({
+          workerId,
+          jobId,
+          kind: 'report',
+          title,
+          summary: result.summary || '',
+          content: result.report,
+          nextSteps: result.nextSteps || [],
+          projectId: projectId || null,
+          projectName: project?.name || null,
+          skills: skillsUsed,
+          engine: engine.engine,
+          sourceErrors,
+          brief,
+        });
+        const approvals = (result.approvals || []).slice(0, 4).map((a) =>
+          this.store.addApproval({
+            workerId,
+            deliverableId: deliverable.id,
+            type: a.type,
+            title: a.title,
+            detail: a.detail,
+            content: a.content || '',
+            platform: a.platform || '',
+          }),
+        );
+        if (jobId) this.store.updateJob(jobId, { deliverableId: deliverable.id }, 'done');
         this.store.finishTask(
           task,
           'completed',
-          `${result.report}\n\nSkills used: ${context.skills.map((s) => s.name).join(', ') || 'worker specialty'}${sourceErrors.length ? '\nSource gaps: ' + sourceErrors.map((s) => `${s.url}: ${s.error}`).join('; ') : ''}`,
+          `${title}. ${result.summary || ''}\n\n${result.report.slice(0, 6000)}\n\nSkills used: ${skillsUsed.join(', ') || 'worker specialty'}${approvals.length ? `\nNeeds your approval: ${approvals.map((a) => a.title).join('; ')}` : ''}${sourceErrors.length ? '\nSource gaps: ' + sourceErrors.map((s) => `${s.url}: ${s.error}`).join('; ') : ''}`,
         );
+        this.store.scene('delivered', { workerId, deliverableId: deliverable.id, title });
+        for (const a of approvals)
+          this.store.scene('approval-request', { workerId, approvalId: a.id, title: a.title });
       }
-      this.store.event(workerId, 'Assignment complete. Output is ready for CEO review.', 'success');
+      this.store.event(
+        workerId,
+        `${worker?.persona?.firstName || worker?.name} finished “${(assignment.title || brief).slice(0, 80)}”. Ready for your review.`,
+        'success',
+      );
     } catch (e) {
-      this.store.finishTask(task, this.stopRequested ? 'cancelled' : 'failed', e.message);
+      const status = cancelled() ? 'cancelled' : 'failed';
+      this.store.finishTask(task, status, e.message);
+      if (jobId) this.store.updateJob(jobId, { error: e.message }, status);
       this.store.event(workerId, e.message, 'warning');
     } finally {
-      this.busy = false;
+      if (control.jobId.startsWith('direct-')) this.running.delete(control.jobId);
       this.setAgent(workerId, 'idle', 'Ready for your next assignment');
     }
   }
+  // ---------------------------------------------------------------------------
+  // Approvals: nothing external happens without the CEO's explicit decision.
+  // ---------------------------------------------------------------------------
+  decide(id, decision, { note = '', followUp = true } = {}) {
+    const approval = this.store.approval(id);
+    if (!approval) throw new Error('Approval not found.');
+    if (approval.status !== 'pending') throw new Error('This request was already decided.');
+    const worker = this.catalog.workers.find((w) => w.id === approval.workerId);
+    const who = worker?.persona?.firstName || worker?.name || 'The employee';
+    const outcome = { note, result: '' };
+    const company = this.store.company();
+    const deployed = (wid) => {
+      const w = this.catalog.workers.find((x) => x.id === wid);
+      return w && this.store.workerConfig(w).deployment === 'deployed';
+    };
+    if (decision === 'approve') {
+      if (approval.type === 'verify') {
+        if (company) {
+          const line = `✓ CEO verified: ${approval.content || approval.detail || approval.title}`;
+          this.saveCompany({
+            ...company,
+            facts: `${company.facts ? company.facts + '\n' : ''}${line}`.slice(-6000),
+          });
+          outcome.result = 'Added to your confirmed facts.';
+        } else outcome.result = 'Verified.';
+      } else if (approval.type === 'publish') {
+        const writer = deployed('manager') ? 'manager' : approval.workerId;
+        if (!this.store.project(COMPANY_PROJECT_ID))
+          throw new Error('Finish company setup so posts can be drafted from your profile.');
+        const job = this.enqueue(
+          {
+            workerId: writer,
+            projectId: COMPANY_PROJECT_ID,
+            kind: 'campaign',
+            title: `Posts for: ${approval.title}`.slice(0, 140),
+            brief:
+              `The CEO approved this idea for publishing. Turn it into final LinkedIn and X posts for review. ${approval.detail}\n\n${approval.content}`.slice(
+                0,
+                2000,
+              ),
+            followUpOf: approval.id,
+          },
+          'approval',
+        );
+        outcome.result = `Final posts are being drafted (${job.title}). You’ll approve them once more before anything is published.`;
+      } else if (followUp && deployed(approval.workerId)) {
+        this.enqueue(
+          {
+            workerId: approval.workerId,
+            projectId: this.store.project(COMPANY_PROJECT_ID) ? COMPANY_PROJECT_ID : undefined,
+            kind: 'report',
+            title: `Next step: ${approval.title}`.slice(0, 140),
+            brief:
+              `The CEO approved: ${approval.title}. ${approval.detail} ${note ? `CEO note: ${note}.` : ''} Prepare the execution-ready version and a short checklist of what the CEO must do personally. You still cannot send, sign, buy or publish anything yourself.\n\n${approval.content}`.slice(
+                0,
+                2000,
+              ),
+            followUpOf: approval.id,
+          },
+          'approval',
+        );
+        outcome.result = `${who} is preparing the execution-ready version.`;
+      } else outcome.result = 'Approved. Complete the external step yourself when ready.';
+    } else {
+      if (approval.type === 'verify' && company) {
+        const line = `Do not claim: ${approval.content || approval.detail || approval.title}`;
+        this.saveCompany({
+          ...company,
+          restrictions: `${company.restrictions ? company.restrictions + '\n' : ''}${line}`.slice(
+            -2000,
+          ),
+        });
+        outcome.result = 'Added to things your team must not claim.';
+      } else outcome.result = 'Declined. Nothing was done.';
+    }
+    const updated = this.store.decideApproval(
+      id,
+      decision === 'approve' ? 'approved' : 'declined',
+      {
+        decision: outcome,
+      },
+    );
+    this.store.event(
+      'boss',
+      `${decision === 'approve' ? 'Approved' : 'Declined'} ${who}’s request: ${approval.title}. ${outcome.result}`,
+      decision === 'approve' ? 'success' : 'info',
+    );
+    this.store.scene('decision', { workerId: approval.workerId, approvalId: id, decision });
+    return updated;
+  }
+  saveCompany(profile) {
+    const saved = this.store.saveCompany(profile);
+    this.store.saveProject(projectSchema.parse(projectFromCompany(saved)), COMPANY_PROJECT_ID);
+    return saved;
+  }
   stop() {
     this.stopRequested = true;
+    for (const control of this.running.values()) control.cancelled = true;
+    for (const job of this.store.activeJobs())
+      if (job.status === 'queued')
+        this.store.updateJob(job.id, { error: 'Stopped by the boss.' }, 'cancelled');
     this.store.event('boss', 'Asked the team to stop after the current operation.');
+  }
+  dispose() {
+    this.disposed = true;
   }
   tick() {
     const s = this.store.settings();

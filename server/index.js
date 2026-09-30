@@ -9,6 +9,18 @@ import { createStore } from './store.js';
 import { createVault } from './vault.js';
 import { createEnvCredentials } from './env-credentials.js';
 import { LocalModel, MODELS } from './llm.js';
+import { ModelRouter, CLOUD_PROVIDERS } from './engine.js';
+import {
+  companySchema,
+  planTeam,
+  suggestTasks,
+  planMission,
+  GOALS,
+  CHANNELS,
+  STAGES,
+  TEAM_SIZES,
+  COMPANY_PROJECT_ID,
+} from './company.js';
 import { SOURCES } from './sources.js';
 import { Office } from './workflow.js';
 import { publicCatalog, workerContext } from './workers.js';
@@ -20,8 +32,8 @@ import { randomBytes } from 'node:crypto';
 
 export function createApp(options = {}) {
   const store = options.store || createStore(),
-    model = options.model || new LocalModel(),
-    vault = options.vault || createEnvCredentials(resolve('.env'), createVault(store.dir));
+    vault = options.vault || createEnvCredentials(resolve('.env'), createVault(store.dir)),
+    model = options.model || new ModelRouter(store, vault, { local: new LocalModel() });
   const staticDir = options.staticDir || fileURLToPath(new URL('../dist', import.meta.url));
   const desktopTickets = new Map();
   const oauth = createXOAuth(vault, options.oauthFetch);
@@ -156,12 +168,36 @@ export function createApp(options = {}) {
       }
     });
   }
-  app.get('/api/state', (req, res) =>
+  const deployedWorker = (id) => {
+    const worker = office.catalog.workers.find((w) => w.id === id);
+    if (!worker) throw new Error('Worker not found.');
+    return worker;
+  };
+  const activity = () => (office.activity ? office.activity() : office.agents);
+  app.get('/api/state', (req, res) => {
+    const agents = activity();
     res.json({
       settings: store.settings(),
-      ...publicCatalog(office.catalog, store, office.agents),
+      ...publicCatalog(office.catalog, store, agents),
+      company: store.company(),
       projects: store.projects(),
-      agents: office.agents,
+      agents,
+      jobs: [...store.activeJobs(), ...store.recentJobs(40)],
+      deliverables: store.deliverables(120),
+      approvals: store.approvals(120),
+      engine: model.describe?.() || { engine: 'local', model: store.settings().model, parallel: 1 },
+      options: {
+        goals: GOALS,
+        channels: CHANNELS,
+        stages: STAGES,
+        teamSizes: TEAM_SIZES,
+        cloudProviders: Object.fromEntries(
+          Object.entries(CLOUD_PROVIDERS).map(([id, p]) => [
+            id,
+            { name: p.name, models: p.models, defaultModel: p.defaultModel },
+          ]),
+        ),
+      },
       busy: office.busy,
       stopping: office.stopRequested && office.busy,
       drafts: store.drafts(),
@@ -170,12 +206,11 @@ export function createApp(options = {}) {
       scenes: store.scenes(),
       sources: SOURCES.map((s) => ({ ...s, health: office.sourceHealth[s.id] })),
       connections: vault.status(),
-    }),
-  );
+    });
+  });
   app.patch('/api/workers/:id', (req, res) => {
-    idle();
-    const worker = office.catalog.workers.find((w) => w.id === req.params.id);
-    if (!worker) throw new Error('Worker not found.');
+    const worker = deployedWorker(req.params.id);
+    if (['researcher', 'manager', 'job-hunter'].includes(worker.id)) idle();
     const patch = z
       .object({
         deployment: z.enum(['deployed', 'bench', 'undeployed']).optional(),
@@ -192,48 +227,70 @@ export function createApp(options = {}) {
       })
       .strict()
       .parse(req.body);
+    if (patch.deployment && patch.deployment !== 'deployed' && office.workerHasWork?.(worker.id))
+      throw new Error(
+        `${worker.persona?.firstName || worker.name} has work in progress. Cancel it or let it finish first.`,
+      );
     res.json(store.saveWorker(worker, patch));
-    store.event('boss', `Updated ${worker.name}: ${patch.deployment || 'skills changed'}.`);
+    store.event(
+      'boss',
+      `Updated ${worker.persona?.fullName || worker.name}: ${patch.deployment || 'skills changed'}.`,
+    );
+  });
+  app.get('/api/workers/:id/suggestions', (req, res) => {
+    const worker = deployedWorker(req.params.id);
+    const config = store.workerConfig(worker);
+    const recent = store
+      .recentJobs(80)
+      .filter((j) => j.workerId === worker.id)
+      .map((j) => j.title);
+    res.json({
+      suggestions: suggestTasks({ ...worker, ...config }, office.catalog, store.company(), recent),
+    });
   });
   app.post('/api/departments/:id/deployment', (req, res) => {
-    idle();
     if (!office.catalog.departments.some((d) => d.id === req.params.id))
       throw new Error('Department not found.');
     const { deployment } = z
       .object({ deployment: z.enum(['deployed', 'bench', 'undeployed']) })
       .strict()
       .parse(req.body);
-    for (const worker of office.catalog.workers.filter((w) => w.department === req.params.id))
-      store.saveWorker(worker, { deployment });
+    let skipped = 0;
+    for (const worker of office.catalog.workers.filter((w) => w.department === req.params.id)) {
+      const locked =
+        deployment !== 'deployed' &&
+        (office.workerHasWork?.(worker.id) ||
+          (office.busy && ['researcher', 'manager', 'job-hunter'].includes(worker.id)));
+      if (locked) skipped++;
+      else store.saveWorker(worker, { deployment });
+    }
     store.event('boss', `Set ${req.params.id} department to ${deployment}.`);
-    res.json({ ok: true });
+    res.json({ ok: true, skipped });
   });
   app.post('/api/projects', (req, res) => {
-    idle();
     res.json(store.saveProject(projectSchema.parse(req.body)));
   });
   app.put('/api/projects/:id', (req, res) => {
-    idle();
     if (!store.project(req.params.id)) throw new Error('Project not found.');
     res.json(store.saveProject(projectSchema.parse(req.body), req.params.id));
   });
   app.delete('/api/projects/:id', (req, res) => {
-    idle();
+    if (req.params.id === COMPANY_PROJECT_ID)
+      throw new Error('This project mirrors your company profile. Edit it under Company instead.');
     store.deleteProject(req.params.id);
     res.json({ ok: true });
   });
-  app.post('/api/assignments', (req, res) => {
-    idle();
-    const assignment = z
-      .object({
-        workerId: z.string(),
-        projectId: z.string().optional(),
-        brief: z.string().trim().min(10).max(2000),
-        kind: z.enum(['report', 'campaign']),
-        skillIds: z.array(z.string()).max(2).optional(),
-      })
-      .strict()
-      .parse(req.body);
+  const assignmentSchema = z
+    .object({
+      workerId: z.string(),
+      projectId: z.string().optional(),
+      brief: z.string().trim().min(10).max(2000),
+      title: z.string().trim().max(140).optional(),
+      kind: z.enum(['report', 'campaign']),
+      skillIds: z.array(z.string()).max(3).optional(),
+    })
+    .strict();
+  const enqueue = (assignment, origin) => {
     if (assignment.workerId === 'job-hunter')
       throw new Error('Open Job search to assign this worker.');
     workerContext(office.catalog, store, assignment.workerId, assignment.skillIds);
@@ -242,9 +299,255 @@ export function createApp(options = {}) {
     if (assignment.kind === 'campaign' && !assignment.projectId)
       throw new Error('Select a project for this campaign.');
     if (!store.settings().useModel)
-      throw new Error('Enable the local model in Office preferences.');
+      throw new Error('Enable the AI engine in Office settings first.');
+    if (office.enqueue) return office.enqueue(assignment, origin);
     void office.runAssignment(assignment);
-    res.status(202).json({ ok: true });
+    return { ok: true };
+  };
+  app.post(['/api/assignments', '/api/work'], (req, res) => {
+    res.status(202).json({ ok: true, job: enqueue(assignmentSchema.parse(req.body), 'boss') });
+  });
+  app.delete('/api/work/:id', (req, res) => {
+    office.cancelJob(req.params.id);
+    res.json({ ok: true });
+  });
+  app.get('/api/deliverables/:id', (req, res) => {
+    const d = store.deliverable(req.params.id);
+    if (!d) throw new Error('Deliverable not found.');
+    res.json(d);
+  });
+  app.get('/api/deliverables/:id/download', (req, res) => {
+    const d = store.deliverable(req.params.id);
+    if (!d) return res.sendStatus(404);
+    const worker = office.catalog.workers.find((w) => w.id === d.workerId);
+    const name =
+      (d.title || 'deliverable')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 60) || 'deliverable';
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}.md"`);
+    const lines = [
+      `# ${d.title}`,
+      '',
+      `_${worker?.persona?.fullName || d.workerId} · ${worker?.title || ''} · ${d.createdAt}_`,
+      '',
+      ...(d.summary ? [`> ${d.summary}`, ''] : []),
+      d.content,
+      ...(d.nextSteps?.length
+        ? ['', '## Next steps', '', ...d.nextSteps.map((x) => `- ${x}`)]
+        : []),
+      '',
+    ];
+    res.send(lines.join('\n'));
+  });
+  app.post('/api/approvals/:id', (req, res) => {
+    const body = z
+      .object({
+        decision: z.enum(['approve', 'decline']),
+        note: z.string().max(600).optional(),
+        followUp: z.boolean().optional(),
+      })
+      .strict()
+      .parse(req.body);
+    res.json(office.decide(req.params.id, body.decision, body));
+  });
+  // Company profile, onboarding plan and auto-staffing.
+  app.post('/api/company/preview', (req, res) => {
+    const profile = companySchema.parse(req.body);
+    res.json({ team: planTeam(profile, office.catalog) });
+  });
+  app.get('/api/company/plan', (req, res) => {
+    const profile = store.company();
+    if (!profile) throw new Error('Complete company setup first.');
+    res.json({ team: planTeam(profile, office.catalog) });
+  });
+  app.put('/api/company', (req, res) => {
+    const profile = companySchema.parse(req.body);
+    const previous = store.company();
+    const saved = office.saveCompany
+      ? office.saveCompany({ ...profile, onboardedAt: previous?.onboardedAt })
+      : store.saveCompany(profile);
+    store.saveSettings({ officeName: profile.companyName.slice(0, 60) });
+    store.event(
+      'boss',
+      previous ? 'Updated the company profile.' : 'Set up the company.',
+      'success',
+    );
+    res.json(saved);
+  });
+  app.post('/api/company/staff', (req, res) => {
+    const body = z
+      .object({
+        workerIds: z.array(z.string()).max(60),
+        starterTasks: z.boolean().default(true),
+        benchOthers: z.boolean().default(false),
+      })
+      .strict()
+      .parse(req.body);
+    const profile = store.company();
+    if (!profile) throw new Error('Complete company setup first.');
+    const chosen = new Set(body.workerIds);
+    const plan = planTeam(profile, office.catalog);
+    let deployed = 0,
+      queued = 0;
+    const notes = [];
+    for (const id of chosen) {
+      const worker = deployedWorker(id);
+      if (store.workerConfig(worker).deployment !== 'deployed') {
+        store.saveWorker(worker, { deployment: 'deployed' });
+        deployed++;
+      }
+    }
+    if (body.benchOthers)
+      for (const worker of office.catalog.workers)
+        if (
+          !chosen.has(worker.id) &&
+          store.workerConfig(worker).deployment === 'deployed' &&
+          !office.workerHasWork?.(worker.id) &&
+          !(office.busy && ['researcher', 'manager', 'job-hunter'].includes(worker.id))
+        )
+          store.saveWorker(worker, { deployment: 'bench' });
+    if (body.starterTasks) {
+      if (!store.settings().useModel) notes.push('Starter tasks need the AI engine turned on.');
+      else
+        for (const id of chosen) {
+          if (id === 'job-hunter') continue;
+          const worker = deployedWorker(id);
+          const member = plan.find((m) => m.workerId === id) || {
+            name: worker.persona.fullName,
+            starter: suggestTasks(
+              { ...worker, ...store.workerConfig(worker) },
+              office.catalog,
+              profile,
+            )[0],
+          };
+          if (!member.starter) continue;
+          try {
+            enqueue(
+              {
+                workerId: id,
+                projectId: COMPANY_PROJECT_ID,
+                kind: member.starter.kind,
+                title: member.starter.title,
+                brief: member.starter.brief,
+                ...(member.starter.skillIds.length ? { skillIds: member.starter.skillIds } : {}),
+              },
+              'onboarding',
+            );
+            queued++;
+          } catch (e) {
+            notes.push(`${member.name}: ${e.message}`);
+          }
+        }
+    }
+    store.event(
+      'boss',
+      `Staffed the office: ${deployed} deployed, ${queued} starter tasks queued.`,
+      'success',
+    );
+    res.json({ deployed, queued, notes });
+  });
+  // Missions: one CEO goal becomes assignments for the best-fit employees.
+  app.post('/api/missions/plan', async (req, res) => {
+    const { goal, useAI } = z
+      .object({ goal: z.string().trim().min(8).max(1000), useAI: z.boolean().optional() })
+      .strict()
+      .parse(req.body);
+    const states = Object.fromEntries(
+      office.catalog.workers.map((w) => [
+        w.id,
+        { deployment: store.workerConfig(w).deployment, busy: office.workerHasWork?.(w.id) },
+      ]),
+    );
+    const company = store.company();
+    const fallback = planMission(goal, company, office.catalog, states);
+    if (!useAI || !store.settings().useModel || !model.plan)
+      return res.json({ ...fallback, planner: 'rules' });
+    try {
+      const candidates = office.catalog.workers
+        .filter((w) => w.id !== 'job-hunter')
+        .map((w) => ({ w, s: states[w.id]?.deployment === 'deployed' ? 1 : 0 }))
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 40)
+        .map(({ w }) => ({ workerId: w.id, title: w.title, department: w.department }));
+      const ids = new Set(candidates.map((c) => c.workerId));
+      for (const t of fallback.tasks)
+        if (!ids.has(t.workerId)) {
+          const w = office.catalog.workers.find((x) => x.id === t.workerId);
+          candidates.push({ workerId: w.id, title: w.title, department: w.department });
+          ids.add(w.id);
+        }
+      const plan = await model.plan(
+        goal,
+        candidates,
+        company
+          ? { name: company.companyName, description: company.description.slice(0, 600) }
+          : null,
+        store.settings().model,
+      );
+      const tasks = plan.tasks
+        .filter((t) => ids.has(t.workerId) && t.workerId !== 'job-hunter')
+        .filter((t, i, all) => all.findIndex((x) => x.workerId === t.workerId) === i)
+        .map((t) => ({ ...t, kind: 'report' }));
+      if (!tasks.length) throw new Error('No valid assignments.');
+      res.json({ summary: plan.summary, tasks, planner: 'ai' });
+    } catch (e) {
+      res.json({
+        ...fallback,
+        planner: 'rules',
+        note: `AI planning unavailable (${e.message}). Used the built-in planner.`,
+      });
+    }
+  });
+  app.post('/api/missions', (req, res) => {
+    const body = z
+      .object({
+        goal: z.string().trim().min(8).max(1000),
+        tasks: z
+          .array(
+            z
+              .object({
+                workerId: z.string(),
+                brief: z.string().trim().min(10).max(2000),
+                why: z.string().max(400).optional(),
+                kind: z.enum(['report', 'campaign']).default('report'),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(8),
+      })
+      .strict()
+      .parse(req.body);
+    const missionId = randomBytes(8).toString('hex');
+    const projectId = store.project(COMPANY_PROJECT_ID) ? COMPANY_PROJECT_ID : undefined;
+    const jobs = [];
+    for (const t of body.tasks) {
+      const worker = deployedWorker(t.workerId);
+      if (store.workerConfig(worker).deployment !== 'deployed')
+        store.saveWorker(worker, { deployment: 'deployed' });
+      jobs.push(
+        enqueue(
+          {
+            workerId: t.workerId,
+            brief: t.brief,
+            kind: t.kind === 'campaign' && projectId ? 'campaign' : 'report',
+            title: `${body.goal}`.slice(0, 100),
+            ...(projectId ? { projectId } : {}),
+            missionId,
+          },
+          'mission',
+        ),
+      );
+    }
+    store.event(
+      'boss',
+      `Launched a mission: ${body.goal} (${jobs.length} assignments).`,
+      'success',
+    );
+    res.status(202).json({ ok: true, missionId, jobs: jobs.length });
   });
   app.get('/api/model', async (req, res) => res.json(await model.status(store.settings().model)));
   app.post('/api/scan', (req, res) => {
@@ -290,11 +593,17 @@ export function createApp(options = {}) {
         .min(1)
         .max(SOURCES.length)
         .refine((a) => new Set(a).size === a.length),
+      engine: z.enum(['local', 'cloud']),
+      cloudProvider: z.enum(Object.keys(CLOUD_PROVIDERS)),
+      cloudModel: z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9._:\/-]{0,100}$/, 'Use a model ID such as claude-sonnet-5-5.'),
+      cloudConcurrency: z.number().int().min(1).max(8),
     })
     .partial()
     .strict();
   app.patch('/api/settings', (req, res) => {
-    idle();
     const patch = settingsSchema.parse(req.body);
     store.saveSettings(patch);
     store.event('boss', 'Updated office preferences.');
@@ -322,6 +631,14 @@ export function createApp(options = {}) {
         linkedinVersion: z
           .string()
           .regex(/^20\d{2}(0[1-9]|1[0-2])$/)
+          .optional(),
+        anthropicKey: z
+          .string()
+          .regex(/^[A-Za-z0-9_\-]{0,500}$/, 'Paste the API key exactly as shown by the provider.')
+          .optional(),
+        openaiKey: z
+          .string()
+          .regex(/^[A-Za-z0-9_\-]{0,500}$/, 'Paste the API key exactly as shown by the provider.')
           .optional(),
       })
       .strict()

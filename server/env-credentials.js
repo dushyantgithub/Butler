@@ -16,9 +16,11 @@ const fields = {
   linkedinConnectedAt: 'BUTLER_LINKEDIN_CONNECTED_AT',
   linkedinAuthor: 'BUTLER_LINKEDIN_AUTHOR',
   linkedinVersion: 'BUTLER_LINKEDIN_VERSION',
+  anthropicKey: 'BUTLER_ANTHROPIC_API_KEY',
+  openaiKey: 'BUTLER_OPENAI_API_KEY',
 };
 const header =
-  '# Butler publishing credentials. Keep this file private and out of Git.\n# Use official user OAuth access tokens, never passwords or browser cookies.\n';
+  '# Butler publishing and AI-provider credentials. Keep this file private and out of Git.\n# Use official user OAuth access tokens and API keys, never passwords or browser cookies.\n';
 
 // Read only these keys; do not load secrets into process.env or child LLM processes.
 export function createEnvCredentials(file, legacyVault) {
@@ -97,6 +99,8 @@ export function createEnvCredentials(file, legacyVault) {
         xAuthorized: Boolean(c.xToken && c.xConnectedAt),
         linkedinAuthor: c.linkedinAuthor,
         linkedinVersion: c.linkedinVersion || '202603',
+        anthropic: Boolean(c.anthropicKey),
+        openai: Boolean(c.openaiKey),
         storage: '.env',
       };
     },

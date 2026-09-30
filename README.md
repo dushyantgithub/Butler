@@ -1,8 +1,10 @@
 # Butler — your local AI office
 
-Butler is a local marketing and research office with 115 configurable employees, 501 built-in skills, and you as CEO. Its lightweight 3D office has brick-style employees, desks, a coffee corner, a lounge, and your own glass-walled chamber. It runs locally on Mac or Windows, either as a packaged Electron app or in your browser. It is not a hosted service.
+Butler is a company office you run like a game. 115 LEGO-style employees — each with a name, a personality and a role-specific skill set drawn from 501 built-in skills — work on a 3D ring campus inspired by Apple Park: a circular glass building around an orchard courtyard, with your CEO pavilion in the middle. You set up the company once, Butler staffs it, and your team does real work: research, plans, copy, campaigns, analysis, legal checklists and more. Nothing leaves the office — no post, email, purchase or new claim — without your approval.
 
-**Scout, the researcher**, reads approved AI publisher feeds, fetches original articles, checks dates and domains, and produces a brief with supporting evidence. **Quinn, the social media manager**, prepares LinkedIn and X drafts, checks their lengths, and publishes after your approval. Every post requires your explicit approval; background research never publishes on its own.
+It runs locally on Mac or Windows as a packaged Electron app or in your browser. The AI engine is local (Qwen through Ollama) by default, with an optional cloud boost using your own Anthropic or OpenAI key. It is not a hosted service.
+
+**Scout, the researcher**, still runs the AI news desk: reads approved publisher feeds, fetches original articles, checks dates and domains, and hands evidence to **Quinn, the social media manager**, who drafts LinkedIn and X posts and publishes only after your approval.
 
 ## Desktop app (Mac and Windows)
 
@@ -82,31 +84,75 @@ lsof -tiTCP:4310 -sTCP:LISTEN | xargs kill -TERM
 
 If nothing is running on that port, there is nothing to stop. To restart, stop the existing instance and run `npm start` again. Your drafts, settings, and saved connections remain on disk.
 
-### Using the office
+### First run: set up your company
 
-Click **Research news** or speak to Scout to start a news round. Scout carries a folder to Quinn, who works at her computer and brings drafts to your chamber. Click her visit bubble, your character, or **Your desk** to read the brief, key points and posts. Give editorial direction and select **Ask Quinn to rewrite** for a new version, or edit the posts yourself. **Approve & publish** approves the current saved version and sends it to the selected connected accounts.
+The first launch opens a short questionnaire (9 steps, about three minutes):
 
-Drag to rotate the office, scroll to zoom, and click employees or their desks to talk. Idle employees walk to the coffee corner, window or lounge. The top-right **Office journal** holds real task statuses, dates, durations and results; the book opens Scout’s source library. Forms open over the office only when needed. **Gentle motion** reduces character bobbing and gestures.
+1. **You** — your name and a CEO minifig (skin tone, hair, facial hair, glasses).
+2. **Company** — name, website, industry, stage, tagline, what the company does, mission.
+3. **Products** — one card per product or service: what it does, who it's for, price, link.
+4. **Customers & market** — audience, regions, competitors.
+5. **Goals** — what Butler should do for you (social, SEO, leads, launch, email, ads, PR, video, research, pricing, fundraising, analytics, engineering, support, legal, operations, hiring, personal productivity, job search, AI news desk), specific needs, channels you use.
+6. **Voice, facts & boundaries** — voice tags, confirmed facts, things never to claim, research pages.
+7. **House rules** — publishing always needs approval (locked); choose whether outreach, spending and new claims also do; pick a team size.
+8. **AI engine** — local, or cloud with your own key.
+9. **Meet your team** — Butler recommends people for your goals (department heads included, plus the Legal & Trust head whenever you publish), explains why, and can give each a first task. Untick anyone; hire more later.
 
-Movement is a visual representation of real workflow events, not a separate AI simulation. Animation may finish after the underlying task. Publishing success always comes from API receipts, never from an animation. The help menu has an explicitly labeled handoff animation preview; it creates no tasks, drafts or posts.
+Everything is editable any time under **Company**, which also re-plans the team when your goals change. The profile is mirrored into a `company` project that every assignment uses as context.
 
-The office starts with no active employees; no mock news, fake work, or fabricated publishing receipts are seeded. A real round can legitimately produce no drafts if nothing is recent, reachable, or readable enough.
+### Playing the office
+
+- **Campus:** drag to orbit, scroll to zoom, right-drag to pan. Click a studio label to fly there, an employee to open their character sheet, or the pavilion to see what's waiting for you. **Home** returns to the whole campus.
+- **Thought bubbles** rotate across the floor and always reflect real state: what someone is working on, what's queued, what they're waiting on you for, or what they could do next with their skills. The 💭 button hides them.
+- **Movement means something:** working employees type at their desks (screens light up), queued ones think, employees with a request walk to your pavilion carrying a blue folder and wait there, and free employees take breaks at the café, the Forum, the library or the orchard. Rings under their feet show status: green working, amber queued, blue waiting for you. The folders on your desk show how many decisions are pending.
+- **Character sheet:** personality, level (one level per three deliverables), status, queue with cancel, pending requests with inline approve/decline, recent work, skills, and **task ideas** tailored to the role, the company profile and the person's skills — one tap assigns. Or write your own brief. Free employees can be sent on a coffee break or called to your office (visual only).
+- **Hire & deploy:** the person-plus button opens the roster drawer; drag someone onto the campus to give them a desk in their studio.
+- **Mission:** describe an outcome ("Launch Brewly on LinkedIn next week"). Butler picks the best-fit specialists across studios, writes a brief for each, and shows the plan for you to edit before launching. With the AI engine it can let the Chief of Staff plan; the built-in planner is the fallback.
+- **Tabs:** Office, Team (roster, skills, deployment), Work (live queue, deliverable library with Markdown viewer and download, history), Approvals, Company, and More (news desk & posts, journal, projects, job search, news sources, settings).
+
+Movement is a visual layer over real events; publishing success always comes from API receipts. The office starts with nobody deployed and no fake work, drafts or receipts.
 
 ## Employees, departments and skills
 
-Open **Employees** to search the roster, inspect skills, give assignments, and manage individual employees or an entire department:
+All 115 employees have a human name, a LEGO look (seven skin tones, fourteen hair styles, glasses, headphones and outfits), two personality traits, a work style, a favourite drink, a hobby and a catchphrase. Names are drawn from many backgrounds and appearance is assigned independently of names. Everything is deterministic, so the same person always looks and sounds the same.
 
-- **In the office:** appears at a department desk and can receive work.
-- **On the bench:** counted in the reserve lounge, with skills and history retained; cannot receive work.
-- **Undeployed:** removed from the floor; cannot receive work. Redeploy anytime.
+Eight studios, each led by a head:
 
-The eight sections cover research, marketing, creative content, analytics, technology, operations, compliance, and personal development. The office starts with no employees deployed. Open the **Employees** side drawer to see designations and skills, then drag an employee onto the office floor to deploy them in their department. A **Deploy** button supports keyboard and touch use. Use **Assign work** on a deployed employee to start an assignment, or **Manage team & bench** for the full roster. Deploy Scout and Quinn before news rounds; deploy Quinn before publishing. Deployment and skill changes are saved across restarts. Changes wait until the current assignment completes so a worker cannot disappear during a publishing operation.
+| Studio | Head | Skill categories the head owns |
+| --- | --- | --- |
+| Strategy & Research | Head of Strategy & Research | Sales & Funnels, Finance & Pricing, Client & Consulting |
+| Marketing & Growth | Head of Marketing | Ads, E-commerce, Email, Events, SEO, Social Media, Community |
+| Content & Creative | Creative Director | Content & Copywriting, Branding & Design |
+| Data & Insights | Head of Data | Analytics & Data |
+| Engineering | CTO | AI & Technology plus a shared technical toolkit |
+| Operations | Head of Operations | Operations & Systems, Launch & Growth (customer success), Industry-specific |
+| Legal & Trust | Head of Legal & Trust | Legal & Compliance |
+| People & Growth | Head of People & Learning | HR & Team, Courses & Education |
 
-All 115 employees and 501 skills work without external folders. The built-in capability catalog contains occupational/task names; Butler supplies original specialty instructions and reusable departmental methods. These are Butler implementations, **not embedded copies of purchased prompt bundles**, and do not claim to reproduce every technique in another library. Skill coverage starts with the employee's department; **Skills & work** lets you change it. Each assignment uses up to two explicitly selected skills, or chooses from assigned skills by relevance to the brief. Generic specialist instructions are sent to the local model; they do not grant shell, browsing, account or sending privileges. Job hunter uses its separate, restricted Job search workflow for discovery and applications.
+**Skills follow roles.** A department head knows every skill in their studio's categories (the Head of Marketing holds all 172 marketing skills). Specialists get a focused set from the categories their role draws on, ranked by relevance to the role — the SEO Strategist gets keyword research, technical SEO, schema, site architecture and so on, the NDA Reviewer gets contract and confidentiality skills. Every one of the 501 skills has at least one owner. **Team → Skills & work** lets you customise any employee; customised lists are kept, default lists update with Butler. Each assignment focuses on up to two relevant skills (three when you pick them).
 
-Optional local imports can be placed in `agents/subagents/<category>/*.md` and `skills/<category>/<skill>/SKILL.md`; restart to load them. Plain frontmatter names/descriptions and Markdown instructions are supported, not arbitrary YAML execution or tool declarations. These folders are ignored by Git. Only import content you are entitled to use; keep restricted libraries private. The app never needs a paid bundle to start.
+- **In the office:** has a desk in their studio and can receive work.
+- **On the bench:** relaxes in the Talent Lounge; keeps skills and history; cannot receive work.
+- **Undeployed:** off campus. Redeploy anytime.
 
-Employee cards show full 3D brick figures with department colors and individual hair and accessories. Hover or focus a card to get a wave. Dragging lifts the character with dangling legs; a successful placement adds a landing animation. Previews share one renderer and render only visible cards. **Gentle motion** and the system reduced-motion preference keep drawer figures still; a full-body illustration is available when WebGL cannot start.
+You can't bench someone mid-task: cancel their work or let it finish first.
+
+All employees and skills work without external folders. The built-in capability catalog contains occupational/task names; Butler supplies original specialty instructions and departmental methods — **not embedded copies of purchased prompt bundles**. Instructions describe a specialty; they never grant shell, browsing, account or sending privileges. Job hunter uses its separate, restricted Job search workflow.
+
+Optional local imports can be placed in `agents/subagents/<category>/*.md` and `skills/<category>/<skill>/SKILL.md`; restart to load them. Plain frontmatter names/descriptions and Markdown instructions are supported, not arbitrary YAML execution or tool declarations. These folders are ignored by Git. Only import content you are entitled to use.
+
+## Work, deliverables and approvals
+
+Every assignment goes into a persistent queue. The engine decides how many run at once: **one at a time on the local engine**, up to eight in parallel on the cloud engine (you choose). An employee never works two tasks at once, waiting work survives a restart, and interrupted work rejoins the queue (specialist work has no external side effects). Cancel single tasks from the Work tab or a character sheet; **Stop all work** cancels everything and discards late output.
+
+Each finished task produces a **deliverable** — a complete Markdown document with title, summary, next steps, the skills used and the engine used — in **Work → Library**, downloadable as `.md`. Anyone can be asked to build on a deliverable. Campaign tasks also put LinkedIn/X drafts on the news desk for final approval.
+
+Employees can't publish, send, buy, sign or contact anyone, and are instructed never to claim they did. When work needs an external step or a fact only you can confirm, they file a request in **Approvals**:
+
+- **Verify a fact** — approve and it joins your confirmed facts; decline and it's added to "never claim".
+- **Publish** — approve and Quinn (or the author) drafts final posts; you approve those again before anything goes live.
+- **Send / contact** — approve to get the final message with Copy and Open-in-Mail buttons. Butler never sends email itself.
+- **Spend, legal, other** — your decision is recorded; optionally the employee prepares the execution-ready version and a checklist of what you must do personally.
 
 ## Private projects and campaign work
 
@@ -133,11 +179,20 @@ Default: **Qwen3 4B through Ollama**, a roughly **2.5 GB download**, selected fo
 
 This checkout also supports a project-local Ollama executable at `.runtime/ollama` (Mac) or `.runtime/ollama.exe` (Windows). When present, Butler stores its model files in `.runtime/models`. Otherwise it uses your installed Ollama and its normal model storage. The optional runtime and downloaded model are not included in Git or npm dependencies.
 
-Butler starts a local Ollama service if needed. A service started by Butler exits with Butler. An already-running Ollama service is left running because it may belong to another application. Model requests always use `127.0.0.1:11434`, with no cloud model option. A service started by Butler has cloud features disabled, one model slot, and one inference request at a time.
+Butler starts a local Ollama service if needed. A service started by Butler exits with Butler. An already-running Ollama service is left running because it may belong to another application. Local model requests always use `127.0.0.1:11434`. A service started by Butler has cloud features disabled, one model slot, and one inference request at a time.
 
 News writing and review use a 4,096-token context; specialist and campaign assignments use 8,192 tokens for project evidence and skills and may use more memory. All passes disable thinking and bound output. Every inference sends `keep_alive: 0`, plus an explicit unload in cleanup. The settings panel checks Ollama's actual loaded-model list. **Weights remain on disk but should not stay in RAM between jobs.** Ollama's small service can still use some memory while the office is open. Other applications using Ollama can load their own models independently.
 
 Turn off **Use the local language model** for a zero-LLM workflow. If Ollama is missing, fails, or produces invalid output, Scout records that event and falls back to a labeled extractive brief. This is a real source excerpt, not simulated LLM output. Basic fallback drafts are held for your review and cannot be automatically published.
+
+## Optional cloud engine
+
+**Company → AI engine** (or **Settings → AI engine**) switches between:
+
+- **Local & private** (default): Qwen through Ollama as described above. One employee writes at a time; the rest wait in the queue.
+- **Cloud boost**: your own **Anthropic** (default model `claude-sonnet-5-5`; also `claude-opus-5-5`, `claude-haiku-4-5`) or **OpenAI** (default `gpt-6.1-sol`; also `gpt-6-astra`, `gpt-6-luna`) API key, with 1–8 employees working in parallel. Any model ID can be typed. Keys are saved only in the private `.env` (`BUTLER_ANTHROPIC_API_KEY`, `BUTLER_OPENAI_API_KEY`), are never returned to the browser, logged or sent anywhere except the provider's fixed HTTPS endpoint. Without a key, Butler stays on the local engine and says so.
+
+With cloud on, assignment briefs, your company profile and bounded source excerpts go to the provider you chose, billed to your key. The news desk and campaign checks run on whichever engine is active; every rule about approval and evidence applies unchanged.
 
 ## How trust works—and its limits
 
@@ -207,7 +262,7 @@ npm run build    # production frontend
 npm run format  # format source files
 ```
 
-`server/` contains the local SQLite store, source reader, Ollama adapter, agent coordinator, encrypted credential store, and official publishing adapters. `src/game/` contains the Three.js office, character routines and walking routes; `src/OfficeGame.jsx` connects it to real workflow events. The React desk panels hold drafts, preferences and history. The scene caps rendering at about 30 fps, pauses rendering in hidden tabs, and shares geometry to keep the office light on an 8 GB computer. `test/` uses disposable databases and mocked publishing transports: running tests cannot publish to social media. The game and local writing flow have been exercised on this Mac; Windows launch scripts are supplied but have not been tested on a Windows machine. Live publishing still requires validation with your own authorized developer accounts.
+`server/` contains the local SQLite store, source reader, Ollama adapter and optional cloud engine (`engine.js`), the office coordinator and work queue (`workflow.js`), company profile, staffing, suggestions and missions (`company.js`), encrypted credential store, and official publishing adapters. `shared/roster.js` defines studios, role placement, personalities, looks and thought bubbles for both server and browser. `src/game/` contains the Three.js ring campus (`world.js`), its layout and walking routes (`campus.js`) and the LEGO figures (`employee-figure.js`); `src/OfficeGame.jsx` is the Liquid Glass HUD that connects the campus to real workflow events. The React desk panels hold drafts, preferences and history. The scene renders at about 30 fps (60 while the camera moves), drops to 1 fps behind full-screen pages, pauses in hidden tabs, instances furniture and trees, and merges each figure into eight meshes to keep 115 employees light on an 8 GB computer. `test/` uses disposable databases and mocked publishing transports: running tests cannot publish to social media. The game and local writing flow have been exercised on this Mac; Windows launch scripts are supplied but have not been tested on a Windows machine. Live publishing still requires validation with your own authorized developer accounts.
 
 Model references: [Qwen3 4B](https://ollama.com/library/qwen3:4b) and [Qwen3 1.7B](https://ollama.com/library/qwen3:1.7b). Memory lifecycle: [Ollama chat API](https://docs.ollama.com/api/chat) and [local-only configuration](https://docs.ollama.com/faq).
 

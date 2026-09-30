@@ -24,7 +24,13 @@ export default function EmployeeDrawer({
     const skills = worker.skillIds
       .map((id) => state.skills.find((s) => s.id === id))
       .filter(Boolean);
-    return [worker.name, worker.description, ...skills.map((s) => s.name)]
+    return [
+      worker.persona?.fullName,
+      worker.title,
+      worker.name,
+      worker.description,
+      ...skills.map((s) => s.name),
+    ]
       .join(' ')
       .toLowerCase()
       .includes(search.toLowerCase());
@@ -43,8 +49,7 @@ export default function EmployeeDrawer({
         </button>
       </div>
       <p className="employee-drawer-intro">
-        Drag an employee onto the office to deploy them in their department. Your office starts
-        empty; you choose the team.
+        Drag someone onto the campus to give them a desk in their studio, or tap Deploy.
       </p>
       <label className="drawer-search">
         <Search size={16} />
@@ -161,11 +166,14 @@ export default function EmployeeDrawer({
                 </button>
                 <div className="drawer-designation">
                   <small>{dept?.name}</small>
-                  <h3>{worker.name}</h3>
-                  <span className="employee-wave-hint">A little hello on hover</span>
+                  <h3>{worker.persona?.fullName || worker.name}</h3>
+                  <span className="employee-wave-hint">
+                    {worker.title}
+                    {worker.head ? ' · Head' : ''}
+                  </span>
                 </div>
               </div>
-              <p>{worker.description}</p>
+              <p>{worker.persona?.traits?.join(' · ') || worker.description}</p>
               <div className="drawer-skill-chips">
                 {skills.slice(0, 3).map((skill) => (
                   <span key={skill.id}>{skill.name}</span>
@@ -196,7 +204,7 @@ export default function EmployeeDrawer({
                           '/workers/' + worker.id,
                           'PATCH',
                           { deployment: 'bench' },
-                          worker.name + ' is on the bench.',
+                          (worker.persona?.firstName || worker.name) + ' is on the bench.',
                         )
                       }
                     >
@@ -212,7 +220,8 @@ export default function EmployeeDrawer({
                         '/workers/' + worker.id,
                         'PATCH',
                         { deployment: 'deployed' },
-                        worker.name + ' is deployed and ready for work.',
+                        (worker.persona?.firstName || worker.name) +
+                          ' is deployed and ready for work.',
                       )
                     }
                   >
