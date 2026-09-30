@@ -19,6 +19,7 @@ function Heading({ eyebrow, title, children }) {
   );
 }
 export function WorkforcePage({
+  navigate,
   state,
   action,
   busy,
@@ -139,6 +140,7 @@ export function WorkforcePage({
       </p>
       {employee && (
         <EmployeeDetail
+          openJobs={() => navigate?.('jobs')}
           key={employee.id}
           employee={employee}
           state={state}
@@ -211,7 +213,7 @@ export function WorkforcePage({
     </>
   );
 }
-function EmployeeDetail({ employee, state, action, busy, close }) {
+function EmployeeDetail({ employee, state, action, busy, close, openJobs }) {
   const [query, setQuery] = useState(''),
     [skillIds, setSkillIds] = useState(employee.skillIds);
   useEffect(() => setSkillIds(employee.skillIds), [JSON.stringify(employee.skillIds)]);
@@ -270,7 +272,11 @@ function EmployeeDetail({ employee, state, action, busy, close }) {
           Save skills
         </button>
       </details>
-      {employee.deployment === 'deployed' ? (
+      {employee.id === 'job-hunter' ? (
+        <button className="button primary" onClick={openJobs}>
+          Open Job search
+        </button>
+      ) : employee.deployment === 'deployed' ? (
         <AssignmentForm state={state} action={action} busy={busy} workerId={employee.id} />
       ) : (
         <p className="form-hint">Deploy this employee to give them an assignment.</p>

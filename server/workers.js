@@ -159,6 +159,12 @@ const core = [
     'engineering',
     'Prepare technical recommendations and implementation plans with explicit assumptions.',
   ],
+  [
+    'job-hunter',
+    'Job hunter',
+    'personal',
+    'Match the uploaded résumé to saved job preferences, explain evidence and gaps, and apply to selected jobs sequentially through the dedicated Job search workflow. Never invent applicant facts or claim success without a submission receipt.',
+  ],
 ];
 export function loadWorkerCatalog(root = resolve('.')) {
   const publicSkills = capabilities.skills.map(({ role, category }) => {

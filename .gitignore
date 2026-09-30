@@ -21,3 +21,8 @@ credentials.enc
 # User-provided, locally licensed worker and skill libraries (never redistribute).
 /agents/
 /skills/
+
+# Desktop build products and verified third-party engine downloads
+/release/
+/build-resources/runtime/
+/build-resources/downloads/

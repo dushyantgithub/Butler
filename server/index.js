@@ -1,9 +1,10 @@
 import express from 'express';
+import { JobWorker } from './jobs/service.js';
+import { jobRoutes } from './jobs/routes.js';
 import { z } from 'zod';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createServer } from 'node:http';
 import { createStore } from './store.js';
 import { createVault } from './vault.js';
 import { createEnvCredentials } from './env-credentials.js';
@@ -15,12 +16,14 @@ import { projectSchema } from './projects.js';
 import { validatePosts, publishPost, PublishError } from './publisher.js';
 import { createXOAuth } from './oauth-x.js';
 import { createLinkedInOAuth } from './oauth-linkedin.js';
-import { ensureLocalEngine } from './runtime.js';
+import { randomBytes } from 'node:crypto';
 
 export function createApp(options = {}) {
   const store = options.store || createStore(),
     model = options.model || new LocalModel(),
     vault = options.vault || createEnvCredentials(resolve('.env'), createVault(store.dir));
+  const staticDir = options.staticDir || fileURLToPath(new URL('../dist', import.meta.url));
+  const desktopTickets = new Map();
   const oauth = createXOAuth(vault, options.oauthFetch);
   const linkedinOAuth = createLinkedInOAuth(vault, options.linkedinOAuthFetch);
   const office =
@@ -52,7 +55,12 @@ export function createApp(options = {}) {
       return res.status(403).json({ error: 'Butler only accepts local requests.' });
     const oauthCallback =
       req.method === 'GET' &&
-      ['/api/oauth/x/callback', '/api/oauth/linkedin/callback'].includes(req.path) &&
+      [
+        '/api/oauth/x/callback',
+        '/api/oauth/linkedin/callback',
+        '/api/oauth/x/desktop',
+        '/api/oauth/linkedin/desktop',
+      ].includes(req.path) &&
       host === '127.0.0.1:4310';
     // A provider redirect keeps cross-site fetch metadata through the final document navigation.
     // Only the public application shell may load this way; API reads/writes stay protected.
@@ -85,7 +93,10 @@ export function createApp(options = {}) {
       return res.status(403).json({ error: 'Use the local office to make changes.' });
     next();
   });
-  app.use(express.json({ limit: '32kb' }));
+  app.use('/api/jobs/resume', express.json({ limit: '7mb' }));
+  app.use(express.json({ limit: '128kb' }));
+  const jobWorker = new JobWorker(store, office, model, options.jobDependencies);
+  app.use('/api/jobs', jobRoutes(jobWorker));
   const idle = () => {
     if (office.busy) throw new Error('Wait for the current assignment to finish.');
   };
@@ -98,6 +109,18 @@ export function createApp(options = {}) {
     ['x', oauth],
     ['linkedin', linkedinOAuth],
   ]) {
+    app.get(`/api/oauth/${platform}/desktop`, (req, res) => {
+      const ticket = desktopTickets.get(req.query.ticket);
+      desktopTickets.delete(req.query.ticket);
+      if (!ticket || ticket.platform !== platform || ticket.expires < Date.now())
+        return res.sendStatus(403);
+      const { url, session } = handler.begin();
+      res.setHeader(
+        'Set-Cookie',
+        `butler_${platform}_oauth=${session}; HttpOnly; SameSite=Lax; Path=/api/oauth/${platform}; Max-Age=600`,
+      );
+      res.redirect(303, url);
+    });
     app.post(`/api/oauth/${platform}/start`, (req, res) => {
       idle();
       if (req.headers.host !== '127.0.0.1:4310')
@@ -211,6 +234,8 @@ export function createApp(options = {}) {
       })
       .strict()
       .parse(req.body);
+    if (assignment.workerId === 'job-hunter')
+      throw new Error('Open Job search to assign this worker.');
     workerContext(office.catalog, store, assignment.workerId, assignment.skillIds);
     if (assignment.projectId && !store.project(assignment.projectId))
       throw new Error('Project not found.');
@@ -231,6 +256,7 @@ export function createApp(options = {}) {
   });
   app.post('/api/stop', (req, res) => {
     office.stop();
+    if (jobWorker.running) jobWorker.stop();
     res.json({ ok: true });
   });
   app.post('/api/model/unload', async (req, res) => {
@@ -444,9 +470,9 @@ export function createApp(options = {}) {
     res.json({ ok: true });
   });
   app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown office endpoint.' }));
-  if (existsSync(resolve('dist/index.html'))) {
-    app.use(express.static(resolve('dist')));
-    app.get('/{*path}', (req, res) => res.sendFile(resolve('dist/index.html')));
+  if (existsSync(resolve(staticDir, 'index.html'))) {
+    app.use(express.static(staticDir));
+    app.get('/{*path}', (req, res) => res.sendFile(resolve(staticDir, 'index.html')));
   } else
     app.get('/', (req, res) =>
       res
@@ -467,40 +493,45 @@ export function createApp(options = {}) {
           : error.message || 'Something went wrong.',
     });
   });
-  return { app, store, office, model };
+  // Called only from Electron's main process; no HTTP route can mint these tickets.
+  const desktopOAuthURL = (platform) => {
+    if (!['x', 'linkedin'].includes(platform)) throw new Error('Unknown account provider.');
+    idle();
+    for (const [key, value] of desktopTickets)
+      if (value.expires < Date.now()) desktopTickets.delete(key);
+    if (desktopTickets.size >= 10) throw new Error('Finish the pending sign-in first.');
+    const ticket = randomBytes(32).toString('base64url');
+    desktopTickets.set(ticket, { platform, expires: Date.now() + 60000 });
+    return `http://127.0.0.1:4310/api/oauth/${platform}/desktop?ticket=${ticket}`;
+  };
+  return { app, store, office, model, desktopOAuthURL, jobWorker };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  // Reserve the port before opening/recovering the database; a second launch
-  // must not mark an active office's tasks as interrupted.
-  const server = createServer();
-  server.on('error', (e) => {
+  const { startOfficeServer } = await import('./lifecycle.js');
+  let runtime;
+  let stopRequested = false;
+  const stop = async () => {
+    stopRequested = true;
+    if (runtime) {
+      await runtime.close();
+      process.exit(0);
+    }
+  };
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, stop);
+  if (process.send) {
+    process.on('disconnect', stop);
+    if (!process.connected) stopRequested = true;
+  }
+  try {
+    runtime = await startOfficeServer({ createApp });
+    if (stopRequested) await stop();
+    else console.log('Butler is open at http://127.0.0.1:4310');
+  } catch (error) {
     console.error(
-      e.code === 'EADDRINUSE' ? 'Butler is already open, or port 4310 is in use.' : e.message,
+      error.code === 'EADDRINUSE'
+        ? 'Butler is already open, or port 4310 is in use.'
+        : error.message,
     );
     process.exit(1);
-  });
-  await new Promise((r) => server.listen(4310, '127.0.0.1', r));
-  const { app, office, store, model } = createApp();
-  server.on('request', app);
-  const engine = await ensureLocalEngine();
-  console.log('Butler is open at http://127.0.0.1:4310');
-  const timer = setInterval(() => office.tick(), 30000);
-  let closing = false;
-  const close = async () => {
-    if (closing) return;
-    closing = true;
-    clearInterval(timer);
-    if (office.busy) office.stop();
-    server.close();
-    const deadline = Date.now() + 220000;
-    while (office.busy && Date.now() < deadline) await new Promise((r) => setTimeout(r, 300));
-    try {
-      await model.unload(store.settings().model);
-    } catch {}
-    engine.stop();
-    store.close();
-    process.exit(0);
-  };
-  process.on('SIGINT', close);
-  process.on('SIGTERM', close);
+  }
 }

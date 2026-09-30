@@ -497,6 +497,10 @@ export class Office {
     }
   }
   async runAssignment({ workerId, projectId, brief, kind = 'report', skillIds }) {
+    if (workerId === 'job-hunter')
+      throw new Error(
+        'Open Job search to upload your résumé, save preferences, and start this worker.',
+      );
     if (this.busy) throw new Error('Wait for the current assignment to finish.');
     const context = workerContext(this.catalog, this.store, workerId, skillIds, brief);
     const project = projectId ? this.store.project(projectId) : null;

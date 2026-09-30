@@ -5,4 +5,4 @@ if ! command -v node >/dev/null 2>&1; then
   read -r '?Press Enter to close.'
   exit 1
 fi
-node scripts/launch.js
+exec node scripts/launch.js

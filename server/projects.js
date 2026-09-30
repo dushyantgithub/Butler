@@ -57,7 +57,7 @@ for (const [address, prefix] of [
   ['240.0.0.0', 4],
 ])
   blocked.addSubnet(address, prefix);
-export async function readProjectSource(value, redirects = 0, dependencies = {}) {
+export async function readPublicPage(value, redirects = 0, dependencies = {}) {
   const url = new URL(publicWebsite(value));
   const addresses = await (dependencies.lookup || lookup)(url.hostname, { family: 4, all: true });
   if (!addresses.length || addresses.some(({ address }) => blocked.check(address)))
@@ -69,6 +69,7 @@ export async function readProjectSource(value, redirects = 0, dependencies = {})
       {
         lookup: (_host, options, cb) =>
           options?.all ? cb(null, [addresses[0]]) : cb(null, addresses[0].address, 4),
+        signal: dependencies.signal || AbortSignal.timeout(25000),
         headers: { 'User-Agent': 'ButlerLocal/1.0', Accept: 'text/html,text/plain' },
       },
       resolve,
@@ -80,7 +81,7 @@ export async function readProjectSource(value, redirects = 0, dependencies = {})
     response.resume();
     if (redirects >= 3 || !response.headers.location)
       throw new Error('Source redirected too many times.');
-    return readProjectSource(
+    return readPublicPage(
       new URL(response.headers.location, url).href,
       redirects + 1,
       dependencies,
@@ -103,7 +104,12 @@ export async function readProjectSource(value, redirects = 0, dependencies = {})
     }
     chunks.push(chunk);
   }
-  const $ = cheerio.load(Buffer.concat(chunks).toString('utf8'));
+  return { url: url.href, html: Buffer.concat(chunks).toString('utf8') };
+}
+export async function readProjectSource(value, redirects = 0, dependencies = {}) {
+  const page = await readPublicPage(value, redirects, dependencies);
+  const url = new URL(page.url);
+  const $ = cheerio.load(page.html);
   $('script,style,nav,footer,header,noscript').remove();
   const text = ($('main,article').first().text() || $('body').text())
     .replace(/\s+/g, ' ')

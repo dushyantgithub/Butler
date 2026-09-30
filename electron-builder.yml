@@ -1,0 +1,47 @@
+appId: local.butler.office
+productName: Butler
+directories:
+  output: release
+  buildResources: build-resources
+toolsets:
+  nsis: 1.2.1
+asar: true
+npmRebuild: false
+extraResources:
+  - from: build-resources/Ollama-LICENSE.txt
+    to: Ollama-LICENSE.txt
+files:
+  - desktop/**
+  - server/**
+  - shared/**
+  - dist/**
+  - package.json
+  - '!**/*.map'
+  - '!**/.env*'
+  - '!**/*.sqlite*'
+  - '!**/credentials.enc'
+mac:
+  category: public.app-category.productivity
+  target:
+    - dmg
+  extraResources:
+    - from: build-resources/runtime/darwin
+      to: ollama
+  artifactName: Butler-${version}-mac-${arch}.${ext}
+win:
+  target:
+    - nsis
+  extraResources:
+    - from: build-resources/runtime/win32
+      to: ollama
+  artifactName: Butler-${version}-windows-${arch}-setup.${ext}
+dmg:
+  writeUpdateInfo: false
+nsis:
+  differentialPackage: false
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false

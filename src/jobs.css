@@ -1,0 +1,258 @@
+.job-workspace {
+  max-width: 1220px;
+  margin: 0 auto;
+}
+.job-intro,
+.job-meta,
+.job-actions,
+.job-toolbar,
+.job-listing-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.job-intro {
+  justify-content: space-between;
+  color: #657468;
+  font-size: 12px;
+  margin: 0 0 24px;
+}
+.job-intro span,
+.job-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.job-columns {
+  display: grid;
+  grid-template-columns: minmax(270px, 0.8fr) minmax(360px, 1.4fr);
+  gap: 24px;
+  align-items: start;
+}
+.job-card {
+  border: 1px solid #dddcd2;
+  background: #fffef9;
+  padding: 24px;
+  border-radius: 15px;
+  margin-bottom: 18px;
+}
+.job-card h2 {
+  font-size: 21px;
+  margin: 10px 0;
+}
+.job-card h3 {
+  font-size: 20px;
+  margin: 12px 0;
+}
+.job-card p,
+.job-privacy p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #62665e;
+}
+.job-card fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.job-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 18px 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.job-field input:not([type='checkbox']),
+.job-field textarea,
+.job-toolbar select {
+  padding: 10px;
+  border: 1px solid #cfcec2;
+  border-radius: 7px;
+  background: #fff;
+  color: #313a31;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+.job-field textarea {
+  resize: vertical;
+}
+.job-field input[type='file'] {
+  font-size: 11px;
+}
+.job-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+.job-checks label,
+.job-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.job-card details {
+  border-top: 1px solid #e5e3d9;
+  padding-top: 14px;
+  margin: 16px 0;
+}
+.job-card summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.job-prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 400px;
+  overflow: auto;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.job-toolbar {
+  justify-content: space-between;
+  margin: 20px 0;
+  font-size: 12px;
+}
+.job-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.job-listing-top {
+  justify-content: space-between;
+}
+.job-status {
+  border-radius: 20px;
+  padding: 6px 10px;
+  background: #efeee6;
+  font-size: 11px;
+}
+.job-status.submitted {
+  background: #deecd9;
+  color: #355439;
+}
+.job-status.uncertain,
+.job-status.needs_attention {
+  background: #f6e8ce;
+  color: #77541c;
+}
+.job-meta {
+  font-size: 12px;
+  color: #74776e;
+}
+.job-fit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 12px;
+}
+.job-fit strong {
+  color: #4f6b43;
+  font-size: 21px;
+}
+.job-fit span {
+  font-size: 11px;
+  color: #70766a;
+}
+.job-card .job-gap {
+  font-size: 12px;
+  color: #866537;
+}
+.job-actions {
+  margin-top: 16px;
+}
+.job-text-button {
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 12px;
+  color: #54634c;
+  cursor: pointer;
+}
+.job-notice,
+.job-queue {
+  padding: 16px;
+  border-radius: 10px;
+  background: #f2ead9;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+.job-notice.error {
+  color: #893e31;
+  background: #f9e5de;
+}
+.job-empty {
+  text-align: center;
+  padding: 70px 30px;
+  color: #737b6e;
+}
+.job-empty h3 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.job-empty p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.job-privacy {
+  border-top: 1px solid #deded4;
+  margin-top: 26px;
+  padding-top: 20px;
+}
+.job-privacy .button {
+  margin-left: 10px;
+}
+.job-workspace button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 850px) {
+  .job-columns {
+    grid-template-columns: 1fr;
+  }
+  .job-card {
+    padding: 18px;
+  }
+}
+.job-portals {
+  margin-top: 24px;
+}
+.job-portal {
+  border-top: 1px solid #e5e3d9;
+  padding: 18px 0;
+}
+.job-portal p {
+  max-width: 900px;
+}
+.job-portal-selectors {
+  display: flex;
+  gap: 20px;
+}
+.job-portal-selectors > label {
+  flex: 1;
+  min-width: 0;
+}
+.job-field select {
+  padding: 10px;
+  border: 1px solid #cfcec2;
+  border-radius: 7px;
+  background: #fff;
+  font: inherit;
+  width: 100%;
+}
+.job-portal-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}

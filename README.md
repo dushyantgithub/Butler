@@ -1,10 +1,52 @@
 # Butler — your local AI office
 
-Butler is a local marketing and research office with 114 configurable employees, 501 built-in skills, and you as CEO. Its lightweight 3D office has brick-style employees, desks, a coffee corner, a lounge, and your own glass-walled chamber. It runs on a Mac or Windows computer and opens in your browser. It is not a hosted service or a packaged native installer.
+Butler is a local marketing and research office with 115 configurable employees, 501 built-in skills, and you as CEO. Its lightweight 3D office has brick-style employees, desks, a coffee corner, a lounge, and your own glass-walled chamber. It runs locally on Mac or Windows, either as a packaged Electron app or in your browser. It is not a hosted service.
 
 **Scout, the researcher**, reads approved AI publisher feeds, fetches original articles, checks dates and domains, and produces a brief with supporting evidence. **Quinn, the social media manager**, prepares LinkedIn and X drafts, checks their lengths, and publishes after your approval. Every post requires your explicit approval; background research never publishes on its own.
 
-## Open the office
+## Desktop app (Mac and Windows)
+
+The Electron app includes Butler, Chromium, Node.js, and a verified Ollama runtime. Users do not need Node, npm, a terminal, a separate Ollama installation, or a launcher shortcut. Open **Butler.app** on Mac or install **Butler** with the Windows installer. Closing the office window quits the app, cancels current work, unloads the model, and stops the Ollama service if Butler started it. Cleanup can take a moment when work is active. A second launch focuses the existing window.
+
+On first use, open **Office settings → Your local engine → Download** to download the selected model (approximately 2.5 GB for Qwen3 4B or 1.4 GB for Qwen3 1.7B). Downloads can be paused and resumed. Model weights are not included in the installer. If Ollama is already running, Butler uses that service and its model storage, and leaves the service running when the app closes.
+
+The app keeps its writable files outside the installation so upgrades do not overwrite the office:
+
+- Mac: `~/Library/Application Support/Butler/`
+- Windows: `%APPDATA%/Butler/`
+- Within that folder: `data/` holds the database, `.env` holds private credentials, and `runtime/` holds engine logs and downloaded models when Butler starts the bundled engine.
+
+**File → Open Butler data folder** reveals this location. The packaged app starts with a separate office from the source checkout; it does not silently move or bundle your existing projects, credentials, imported skills, or model downloads. With both versions stopped, you can copy the checkout's `data/` directory and `.env` into the app-data folder to transfer your office. Copy optional `agents/` and `skills/` there too if needed. Back up any existing destination office before replacing it.
+
+The server remains private to `127.0.0.1:4310` so existing OAuth callbacks keep working. Stop the browser/terminal version before opening the desktop app. Social sign-in opens your normal browser using a short-lived, one-use handoff and a browser-bound callback cookie. The app picks up the saved connection on its next refresh.
+
+### Native access and future computer features
+
+The isolated renderer gets a narrow `window.butlerDesktop` bridge: native text-file open/save dialogs (2 MB limit), folder selection, reveal app data, account sign-in, and model downloads. File operations act only on files chosen in the OS dialog. Native calls validate the owning window, main frame and local origin; external links allow HTTPS only. The renderer has no Node integration, raw IPC, arbitrary filesystem path API, or command runner. This follows [Electron's security guidance](https://www.electronjs.org/docs/latest/tutorial/security).
+
+Future filesystem and computer automation should add named main-process operations through this bridge. Screen recording, microphone, accessibility and automation permissions are **not granted in advance**; those features are not implemented yet and will require the appropriate OS permissions when added.
+
+### Build and verify desktop packages
+
+Development/building requires Node.js 24 or newer; installed apps do not.
+
+```sh
+npm ci
+node node_modules/electron/install.js  # only needed if npm blocked Electron's install script
+npm run desktop:prepare             # download and verify this platform's Ollama runtime
+npm run desktop                     # build frontend and run Electron
+npm run test:desktop                # isolated profile; close any running Butler first
+npm run desktop:mac                 # Mac .app/.dmg for the build machine architecture
+npm run desktop:win                 # Windows x64 installer
+```
+
+Outputs go to ignored `release/`. `electron-builder.yml` uses an explicit source allowlist; `.env`, `data/`, `.runtime/`, optional private libraries and local model weights are excluded. Runtime downloads are pinned to Ollama 0.35.0 and verified against the release SHA-256 digests before extraction; licenses travel with the runtime. The Windows distribution is larger because it includes the engine's accelerator libraries.
+
+The **Desktop packages** GitHub Actions workflow builds Apple Silicon, Intel Mac and Windows x64 packages on manual dispatch or a `desktop-v*` tag. Windows ARM is not a configured target. Building Mac installers requires macOS. The pinned NSIS toolset supports Apple Silicon cross-builds. For an unsigned Windows build on Mac, use `npx electron-builder --win --x64 --publish never -c.win.signExecutable=false` after runtime preparation. Test the installer on Windows before distribution.
+
+These are local, **unsigned/unnotarized builds** until signing credentials are configured. macOS Gatekeeper and Windows SmartScreen may warn on distribution. Public releases need an Apple Developer signing/notarization setup and Windows code signing; the workflow does not publish releases or contain signing credentials. No auto-updater is enabled.
+
+## Open the office in a browser
 
 Requires **Node.js 24 or newer**. Download it from [nodejs.org](https://nodejs.org/).
 
@@ -18,7 +60,7 @@ npm run build
 npm start
 ```
 
-Open **http://127.0.0.1:4310**. `npm run launch` builds, starts the server, and opens your browser. Keep its terminal open while the office works. Press Ctrl+C to close the office gracefully. Closing only the browser tab does not stop the server.
+Open **http://127.0.0.1:4310**. `npm run launch` builds, starts the server, and opens your browser. Keep its terminal open while the office works. Close that terminal window or press Ctrl+C to stop Butler and any local model service it started. During startup or active work, cleanup may take a moment. Closing only the browser tab does not stop the server. If another instance is already running, the launcher asks you to close it first so this window owns the instance it stops.
 
 ### Start and stop from a terminal
 
@@ -60,7 +102,7 @@ Open **Employees** to search the roster, inspect skills, give assignments, and m
 
 The eight sections cover research, marketing, creative content, analytics, technology, operations, compliance, and personal development. The office starts with no employees deployed. Open the **Employees** side drawer to see designations and skills, then drag an employee onto the office floor to deploy them in their department. A **Deploy** button supports keyboard and touch use. Use **Assign work** on a deployed employee to start an assignment, or **Manage team & bench** for the full roster. Deploy Scout and Quinn before news rounds; deploy Quinn before publishing. Deployment and skill changes are saved across restarts. Changes wait until the current assignment completes so a worker cannot disappear during a publishing operation.
 
-All 114 employees and 501 skills work without external folders. The built-in capability catalog contains occupational/task names; Butler supplies original specialty instructions and reusable departmental methods. These are Butler implementations, **not embedded copies of purchased prompt bundles**, and do not claim to reproduce every technique in another library. Skill coverage starts with the employee's department; **Skills & work** lets you change it. Each assignment uses up to two explicitly selected skills, or chooses from assigned skills by relevance to the brief. Instructions are sent to the local model; they do not grant shell, browsing, account or sending privileges.
+All 115 employees and 501 skills work without external folders. The built-in capability catalog contains occupational/task names; Butler supplies original specialty instructions and reusable departmental methods. These are Butler implementations, **not embedded copies of purchased prompt bundles**, and do not claim to reproduce every technique in another library. Skill coverage starts with the employee's department; **Skills & work** lets you change it. Each assignment uses up to two explicitly selected skills, or chooses from assigned skills by relevance to the brief. Generic specialist instructions are sent to the local model; they do not grant shell, browsing, account or sending privileges. Job hunter uses its separate, restricted Job search workflow for discovery and applications.
 
 Optional local imports can be placed in `agents/subagents/<category>/*.md` and `skills/<category>/<skill>/SKILL.md`; restart to load them. Plain frontmatter names/descriptions and Markdown instructions are supported, not arbitrary YAML execution or tool declarations. These folders are ignored by Git. Only import content you are entitled to use; keep restricted libraries private. The app never needs a paid bundle to start.
 
@@ -168,3 +210,37 @@ npm run format  # format source files
 `server/` contains the local SQLite store, source reader, Ollama adapter, agent coordinator, encrypted credential store, and official publishing adapters. `src/game/` contains the Three.js office, character routines and walking routes; `src/OfficeGame.jsx` connects it to real workflow events. The React desk panels hold drafts, preferences and history. The scene caps rendering at about 30 fps, pauses rendering in hidden tabs, and shares geometry to keep the office light on an 8 GB computer. `test/` uses disposable databases and mocked publishing transports: running tests cannot publish to social media. The game and local writing flow have been exercised on this Mac; Windows launch scripts are supplied but have not been tested on a Windows machine. Live publishing still requires validation with your own authorized developer accounts.
 
 Model references: [Qwen3 4B](https://ollama.com/library/qwen3:4b) and [Qwen3 1.7B](https://ollama.com/library/qwen3:1.7b). Memory lifecycle: [Ollama chat API](https://docs.ollama.com/api/chat) and [local-only configuration](https://docs.ollama.com/faq).
+
+## Job hunter
+
+Open **Jobs**, deploy **Job hunter**, and upload a PDF, DOCX, or TXT résumé (up to 5 MB; scanned PDFs need OCR before upload). Save target titles, multiple cities/countries/regions, remote/WFH, hybrid or office/WFO arrangements, employment types, exclusions, posting age, and application contact details. Saved salary and eligibility/experience notes are review guidance, not verified eligibility or salary filters. Missing listing details are visible and can be excluded.
+
+**Find matching jobs** reads Remotive's remote feed, the latest three Arbeitnow pages (mostly Europe), and optional Lever employer boards such as the company segment of `https://jobs.lever.co/company-name`. Use `eu:company-name` for an EU board. Each Lever board is capped at 1,000 listings. This is source-limited discovery, not an exhaustive search across the internet. Remotive listings are delayed by 24 hours and cached locally in memory for six hours; other source caches are shorter. Source failures and result counts are shown, and unknown publication dates are flagged. Changing a résumé or preferences requires a fresh search before applying.
+
+Ranking uses saved title/location/work-arrangement filters and résumé skill overlap (common skills are detected when the skills preference is empty). The score is a keyword heuristic, not a hiring prediction. **Review with Qwen** adds a local evidence-based assessment, including gaps and saved salary/eligibility notes. The review receives bounded excerpts of long résumés/descriptions. Search and applications do not require a model; reviews use the existing local Ollama model. There is no cloud/subscription token integration, no credential import from Codex, and no change to other employees' model access.
+
+Select up to 30 matches and click **Apply to selected jobs** to authorize sending your saved details and original résumé to those employers, sequentially. The visible browser adapter uses an installed Google Chrome, Microsoft Edge, or Playwright Chromium browser, in that order. For a development machine without Chrome or Edge, run `npm run setup:jobs-browser` once. Automatic application currently supports recognized Lever-hosted forms. It fills known contact fields, attaches the original résumé, and uses exact saved text/select answers. Unknown required questions, consent choices, CAPTCHA, changed forms, and unsupported sites need your input through the listing link. It does not bypass site challenges. The adapter only allows known provider/browser resources and restricts application writes to the chosen posting and Lever's résumé parsing endpoint.
+
+A submission is marked **Submitted** only after an explicit confirmation on the expected employer posting, or when you explicitly mark a manual application submitted. Missing confirmations become **Check submission**, stop the queue, and cannot retry until you confirm no application was submitted. Restarting never resubmits an in-flight job automatically. Queued items return to review; in-flight items become uncertain. Stop cancels the active browser and leaves remaining items unsubmitted. Success history prevents duplicate submissions to the same normalized listing URL.
+
+The résumé, contact details, preferences, and application history live in separate tables in the existing private local SQLite database, excluded from Git and desktop distribution. They are not included in the general office state, task log, or model prompts for other employees. The database is permission-restricted, not encrypted at rest. **Clear private job data** removes the saved job records; it does not withdraw applications already sent or erase external backups. Job pages are treated as untrusted content, and model prose cannot grant browser actions or invent application facts.
+
+Provider references: [Lever Postings API](https://github.com/lever/postings-api), [Remotive API](https://github.com/remotive-io/remote-jobs-api), [Arbeitnow API](https://www.arbeitnow.com/blog/job-board-api). Employer-side submission APIs require employer credentials, so Butler uses the applicant-facing Lever form rather than asking applicants for employer API keys.
+
+### Additional job portals
+
+Under **Jobs → Where to look → Additional portals**, enable LinkedIn, Indeed, Handshake, ZipRecruiter, Google Jobs, Wonderin.ai, Instahyre, Foundit, Atlassian, and/or Protocoljobs, then save preferences. Existing source choices remain unchanged until you enable these portals.
+
+- **Atlassian:** public careers listings are read directly, including descriptions and locations. An update date is not treated as a publication date. Apply through Atlassian’s hiring site.
+- **LinkedIn:** reads public search cards and attempts up to six full descriptions. Summary-only results are flagged. Tracking parameters and regional LinkedIn hosts normalize to the same job ID.
+- **Indeed, ZipRecruiter, Foundit:** attempt public HTML/structured listings. If a portal blocks requests or changes its page structure, Butler reports a browser handoff instead of claiming there are no jobs. Foundit uses its India site.
+- **Handshake, Google Jobs, Wonderin.ai, Instahyre:** browser searches/account workflows. These are not server-side feeds or automatic-application integrations. Google search links include your selected role and location; account-based portals show the query to enter manually. Wonderin remains a separate service; Butler never enrolls you, uploads your résumé to it, or uses its subscription.
+- **Protocoljobs:** enter its exact HTTPS website address in preferences. No domain is assumed. Once configured it works as a browser portal with listing import.
+
+The **Your job portals** panel provides each saved role/location combination. Automatic public searches are limited to the first four combinations per portal per run, with an hour of in-memory caching; all other combinations can be opened in the browser. Atlassian reads up to 2,000 feed records. Browser-only or blocked portals are listed explicitly in source coverage, without fabricated counts or dates.
+
+Use **Import a chosen job into Butler** to paste a specific job URL. **Read listing** extracts public `JobPosting` structured data where available. If a page requires login or does not expose structured details, paste the title, company, location and job description yourself and save it. For Google Jobs, use the original employer listing. Imported jobs participate in local matching, Qwen review, duplicate detection and application tracking, and are re-evaluated on future searches. Jobs outside your preferences remain visible under **All saved jobs**.
+
+These additions do **not** enable automatic submissions on the new portals. Only the existing recognized Lever adapter can submit; other applications are completed on the relevant site and explicitly marked submitted by you. Login cookies, passwords, API keys and subscription credentials are not collected. Public page reads use the same private-network and redirect protections as project research; pasted details never grant browser or model privileges.
+
+Portal references: [Atlassian careers](https://www.atlassian.com/company/careers/all-jobs), [LinkedIn jobs](https://www.linkedin.com/jobs), [Indeed integrations](https://docs.indeed.com/api-guides/), [Handshake](https://joinhandshake.com/find-jobs/), [Google Jobs help](https://support.google.com/websearch/answer/7498276), [Instahyre opportunities](https://help.instahyre.com/en/article/explore-matching-opportunities-1s98q42/), [Wonderin](https://wonderin.ai/).

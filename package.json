@@ -10,7 +10,15 @@
     "setup:model": "node scripts/setup-model.js",
     "launch": "node scripts/launch.js",
     "format": "prettier --write src server scripts test *.js *.json *.md",
-    "check:sources": "node scripts/check-sources.js"
+    "check:sources": "node scripts/check-sources.js",
+    "desktop": "npm run build && electron .",
+    "desktop:prepare": "node scripts/prepare-desktop-runtime.js",
+    "desktop:pack": "npm run build && electron-builder --dir",
+    "desktop:mac": "npm run build && node scripts/prepare-desktop-runtime.js darwin && electron-builder --mac --publish never",
+    "desktop:win": "npm run build && node scripts/prepare-desktop-runtime.js win32 && electron-builder --win --x64 --publish never",
+    "test:desktop": "npm run build && node scripts/smoke-desktop.js",
+    "setup:jobs-browser": "playwright install chromium",
+    "test:jobs-browser": "npm run build && node scripts/smoke-jobs.js"
   },
   "keywords": [],
   "type": "module",
@@ -18,8 +26,12 @@
     "cheerio": "^1.2.0",
     "express": "^5.2.1",
     "fast-xml-parser": "^5.11.2",
+    "jszip": "^3.10.2",
     "lucide-react": "^1.48.0",
+    "mammoth": "^1.13.0",
     "marked": "^18.0.14",
+    "pdfjs-dist": "^6.3.289",
+    "playwright": "1.63.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "three": "^0.186.1",
@@ -28,11 +40,15 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
     "prettier": "^3.9.9",
     "vite": "^8.3.1"
   },
   "private": true,
   "engines": {
     "node": ">=24.0.0"
-  }
+  },
+  "main": "desktop/main.js",
+  "productName": "Butler"
 }

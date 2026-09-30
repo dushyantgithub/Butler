@@ -13,10 +13,14 @@ export async function ensureLocalEngine() {
   }
   // An existing Ollama instance belongs to the user; never terminate it.
   if (await online()) return { owned: false, stop() {} };
-  const bundled = resolve('.runtime', process.platform === 'win32' ? 'ollama.exe' : 'ollama');
+  const runtimeDir = process.env.BUTLER_RUNTIME_DIR || resolve('.runtime');
+  const bundled = resolve(
+    process.env.BUTLER_ENGINE_DIR || runtimeDir,
+    process.platform === 'win32' ? 'ollama.exe' : 'ollama',
+  );
   const local = existsSync(bundled);
-  mkdirSync(resolve('.runtime'), { recursive: true });
-  const log = openSync(resolve('.runtime/ollama.log'), 'a', 0o600);
+  mkdirSync(runtimeDir, { recursive: true });
+  const log = openSync(resolve(runtimeDir, 'ollama.log'), 'a', 0o600);
   const child = spawn(local ? bundled : 'ollama', ['serve'], {
     windowsHide: true,
     stdio: ['ignore', log, log],
@@ -27,7 +31,7 @@ export async function ensureLocalEngine() {
       OLLAMA_KEEP_ALIVE: '0',
       OLLAMA_NUM_PARALLEL: '1',
       OLLAMA_MAX_LOADED_MODELS: '1',
-      ...(local ? { OLLAMA_MODELS: resolve('.runtime/models') } : {}),
+      ...(local ? { OLLAMA_MODELS: resolve(runtimeDir, 'models') } : {}),
     },
   });
   closeSync(log);
@@ -43,8 +47,16 @@ export async function ensureLocalEngine() {
     if (await online())
       return {
         owned: true,
-        stop() {
-          child.kill('SIGTERM');
+        async stop() {
+          if (child.exitCode !== null || child.signalCode !== null) return;
+          await new Promise((done) => {
+            const timer = setTimeout(() => child.kill('SIGKILL'), 5000);
+            child.once('exit', () => {
+              clearTimeout(timer);
+              done();
+            });
+            child.kill('SIGTERM');
+          });
         },
       };
     await new Promise((r) => setTimeout(r, 500));

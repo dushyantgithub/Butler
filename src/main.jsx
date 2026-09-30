@@ -37,6 +37,7 @@ import {
 import twitterText from 'twitter-text';
 import './styles.css';
 import OfficeGame from './OfficeGame.jsx';
+import JobSearchPage from './JobSearchPage.jsx';
 import CampaignGraphic from './CampaignGraphic.jsx';
 import { WorkforcePage, ProjectsPage } from './OfficeManagement.jsx';
 
@@ -220,7 +221,7 @@ function App() {
     review = drafts.filter((d) => ['review', 'attention', 'approved'].includes(d.status));
   const busy = state?.busy || pending;
   const navigate = (id) => {
-    setPage(id);
+    setPage(id.endsWith(':job-hunter') ? 'jobs' : id);
     if (id === 'drafts') setSelectedId(null);
   };
   return (
@@ -249,6 +250,7 @@ function App() {
         {state && page.startsWith('workers') && (
           <WorkforcePage
             key={page}
+            navigate={navigate}
             initialDepartment={page.split(':')[1] || 'all'}
             initialEmployee={page.split(':')[2] || null}
             state={state}
@@ -257,6 +259,7 @@ function App() {
           />
         )}
         {state && page === 'projects' && <ProjectsPage state={state} action={action} busy={busy} />}
+        {state && page === 'jobs' && <JobSearchPage api={api} state={state} action={action} />}
         {state && page === 'activity' && <ActivityPage state={state} />}
         {state && page === 'sources' && <SourcesPage state={state} action={action} busy={busy} />}
         {state && page === 'settings' && (
@@ -1094,6 +1097,85 @@ function SourcesPage({ state, action, busy }) {
     </>
   );
 }
+function DesktopEngine({ modelName, refreshModel }) {
+  const [download, setDownload] = useState({ active: false });
+  const [error, setError] = useState('');
+  const refreshRef = useRef(refreshModel);
+  refreshRef.current = refreshModel;
+  useEffect(() => {
+    let live = true;
+    let wasActive = false;
+    const poll = async () => {
+      try {
+        const value = await window.butlerDesktop.getDownload();
+        if (!live) return;
+        setDownload(value);
+        if (wasActive && !value.active) refreshRef.current();
+        wasActive = value.active;
+      } catch {}
+    };
+    void poll();
+    const timer = setInterval(poll, 1000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, []);
+  return (
+    <>
+      <p>
+        Butler includes the local engine. Download your selected model once; it stays on this
+        computer.
+      </p>
+      <button
+        type="button"
+        className="button secondary full-width"
+        disabled={download.active}
+        onClick={async () => {
+          setError('');
+          try {
+            setDownload(await window.butlerDesktop.downloadModel(modelName));
+          } catch (e) {
+            setError(e.message);
+          }
+        }}
+      >
+        Download {modelName} ({modelName === 'qwen3:4b' ? 'about 2.5 GB' : 'about 1.4 GB'})
+      </button>
+      {download.status && (
+        <p role="status">
+          {download.status}
+          {download.progress !== null && download.progress !== undefined
+            ? ` · ${download.progress}%`
+            : ''}
+        </p>
+      )}
+      {download.active && (
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => window.butlerDesktop.cancelDownload()}
+        >
+          Pause download
+        </button>
+      )}
+      {(error || download.error) && <p className="error-text">{error || download.error}</p>}
+      <button
+        type="button"
+        className="text-button"
+        onClick={async () => {
+          try {
+            await window.butlerDesktop.showDataFolder();
+          } catch (e) {
+            setError(e.message);
+          }
+        }}
+      >
+        Open Butler data folder
+      </button>
+    </>
+  );
+}
 function SettingsPage({ state, model, action, refreshModel, busy }) {
   const [form, setForm] = useState(state.settings),
     [credentials, setCredentials] = useState({
@@ -1112,8 +1194,13 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
     setConnectingX(true);
     setConnectionError('');
     try {
-      const { url } = await api('/oauth/x/start', 'POST');
-      window.location.assign(url);
+      if (window.butlerDesktop) {
+        await window.butlerDesktop.connectAccount('x');
+        setConnectingX(false);
+      } else {
+        const { url } = await api('/oauth/x/start', 'POST');
+        window.location.assign(url);
+      }
     } catch (error) {
       setConnectionError(error.message);
       setConnectingX(false);
@@ -1124,8 +1211,13 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
     setConnectingLinkedIn(true);
     setConnectionError('');
     try {
-      const { url } = await api('/oauth/linkedin/start', 'POST');
-      window.location.assign(url);
+      if (window.butlerDesktop) {
+        await window.butlerDesktop.connectAccount('linkedin');
+        setConnectingLinkedIn(false);
+      } else {
+        const { url } = await api('/oauth/linkedin/start', 'POST');
+        window.location.assign(url);
+      }
     } catch (error) {
       setConnectionError(error.message);
       setConnectingLinkedIn(false);
@@ -1336,21 +1428,27 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
               </Badge>
             </div>
             <h2>Your local engine</h2>
-            <p>Install Ollama for Mac or Windows, then download your small model once.</p>
-            <a
-              className="button secondary full-width"
-              href="https://ollama.com/download"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Get Ollama <ArrowUpRight size={15} />
-            </a>
-            <label className="code-label">RUN ONCE IN TERMINAL</label>
-            <code>npm run setup:model</code>
-            <small>
-              Run this from the Butler folder. Qwen3 1.7B is about a 1.4 GB download. For the
-              optional 4B model, run ollama pull qwen3:4b in your Ollama installation.
-            </small>
+            {window.butlerDesktop ? (
+              <DesktopEngine modelName={state.settings.model} refreshModel={refreshModel} />
+            ) : (
+              <>
+                <p>Install Ollama for Mac or Windows, then download your small model once.</p>
+                <a
+                  className="button secondary full-width"
+                  href="https://ollama.com/download"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Get Ollama <ArrowUpRight size={15} />
+                </a>
+                <label className="code-label">RUN ONCE IN TERMINAL</label>
+                <code>npm run setup:model</code>
+                <small>
+                  Run this from the Butler folder. Qwen3 1.7B is about a 1.4 GB download. For the
+                  optional 4B model, run ollama pull qwen3:4b in your Ollama installation.
+                </small>
+              </>
+            )}
             <dl>
               <div>
                 <dt>Ollama</dt>
@@ -1632,9 +1730,9 @@ function SettingsPage({ state, model, action, refreshModel, busy }) {
         </div>
         <div className="connections-bottom">
           <p>
-            Tokens are saved in your private, Git-ignored .env file on this computer. They are never
-            sent to the LLM or returned to this page. The file is plaintext; keep it private. Saved
-            credentials do not confirm platform access.
+            Tokens are saved in your private .env file on this computer. They are never sent to the
+            LLM or returned to this page. The file is plaintext; keep it private. Saved credentials
+            do not confirm platform access.
           </p>
           <button className="button primary" disabled={busy}>
             Save connections

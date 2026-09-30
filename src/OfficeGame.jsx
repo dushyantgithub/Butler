@@ -120,6 +120,7 @@ export default function OfficeGame({
     drafts: 'The boss’s desk',
     workers: 'Employees & deployment',
     projects: 'Projects & research',
+    jobs: 'Your next role',
     activity: 'The office journal',
     sources: 'Scout’s source library',
     settings: 'Office preferences',
@@ -216,6 +217,14 @@ export default function OfficeGame({
           >
             <BriefcaseBusiness size={18} />
             <span className="nav-action-label">Projects</span>
+          </button>
+          <button
+            onClick={() => navigate('jobs')}
+            title="Job search & applications"
+            aria-label="Job search & applications"
+          >
+            <BriefcaseBusiness size={18} />
+            <span className="nav-action-label">Jobs</span>
           </button>
           <button
             onClick={() => navigate('activity')}

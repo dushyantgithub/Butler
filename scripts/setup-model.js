@@ -45,5 +45,5 @@ try {
   );
   process.exitCode = 1;
 } finally {
-  engine.stop();
+  await engine.stop();
 }

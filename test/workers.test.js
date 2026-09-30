@@ -73,9 +73,9 @@ function project(store) {
 
 test('public starter office works without imported folders and covers every skill', (t) => {
   const { catalog, store } = fixture(t);
-  assert.equal(catalog.workers.length, 114);
+  assert.equal(catalog.workers.length, 115);
   assert.equal(catalog.skills.length, 501);
-  assert.equal(new Set(catalog.workers.map((w) => w.id)).size, 114);
+  assert.equal(new Set(catalog.workers.map((w) => w.id)).size, 115);
   assert.equal(new Set(catalog.skills.map((s) => s.id)).size, 501);
   for (const skill of catalog.skills)
     assert.ok(
@@ -259,7 +259,7 @@ test('worker API enforces deployment, skills, project validation and approval in
   });
   assert.equal(f.store.draft(d.id).approvedAt, null);
   const state = await (await fetch(url + '/api/state')).json();
-  assert.equal(state.workers.length, 114);
+  assert.equal(state.workers.length, 115);
   assert.equal(state.skills.length, 501);
   assert.equal((await call(`/projects/${p.id}`, 'DELETE', {})).status, 200);
   assert.equal(f.store.project(p.id), null);
